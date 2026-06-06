@@ -438,7 +438,7 @@ const NAV=[
 ];
 const TIPOS=['Residencial','Comercial','Incorporação','Reforma','Infraestrutura'];
 const STATUS=[['Planejamento','b-plan'],['Em andamento','b-and'],['Pausada','b-pausa'],['Concluída','b-conc']];
-const CATS=['Material','Mão de obra','Equipamento','Serviço','Taxas / Licenças','Administrativo','Outro'];
+const CATS=['Material','Mão de obra','Empreita','Equipamento','Serviço','Taxas / Licenças','Administrativo','Outro'];
 const PAGSTATUS=[['Previsto','b-prev'],['Pendente','b-pend'],['Pago','b-pago']];
 // Qualificação (padrão construtivo) -> fração de mão de obra e alíquota de ISS aproximadas
 const QUALIF=['Popular','Normal','Médio','Alto padrão','Luxo'];
@@ -451,8 +451,14 @@ const CART_PCT=0.006;       // emolumentos de averbação da construção (~0,6%
 const CART_UNID=900;        // custa fixa aproximada por unidade (individualização/averbação)
 const OUTRAS_PCT=0.002;     // taxas de habite-se, CND, baixa do RET/afetação (~0,2%)
 
-let state={users:[],obras:[],theme:'dark'}, session=null, currentObra=null, currentTab='visao';
-let unsubObras=null, unsubUsers=null, unsubSelf=null;
+let state={users:[],obras:[],lists:{tipos:[],categorias:[],funcionarios:[]},theme:'dark'}, session=null, currentObra=null, currentTab='visao';
+let unsubObras=null, unsubUsers=null, unsubSelf=null, unsubMeta=null;
+// listas efetivas (padrão + personalizadas salvas no Firestore)
+function listTipos(){ return [...TIPOS, ...((state.lists.tipos||[]).filter(t=>!TIPOS.includes(t)))]; }
+function listCats(){ return [...CATS, ...((state.lists.categorias||[]).filter(c=>!CATS.includes(c)))]; }
+function listFuncs(){ return (state.lists.funcionarios||[]); }
+function funcNome(id){ const f=listFuncs().find(x=>x.id===id); return f?`${f.nome}${f.funcao?' — '+f.funcao:''}`:''; }
+const funcTag=l=>l.funcionarioNome?` <span class="badge b-prev" style="font-size:10px;padding:2px 7px;vertical-align:middle">${esc(l.funcionarioNome)}</span>`:'';
 
 /* ---------- persistence (Firestore) ---------- */
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
@@ -479,8 +485,13 @@ function attachListeners(){
       if(document.getElementById('page-config').classList.contains('active'))renderConfig();
     },err=>{});
   }
+  unsubMeta=db.collection('meta').doc('lists').onSnapshot(d=>{
+    state.lists = d.exists ? {tipos:[],categorias:[],funcionarios:[],...d.data()} : {tipos:[],categorias:[],funcionarios:[]};
+    if(document.getElementById('page-config').classList.contains('active'))renderConfig();
+  },err=>{});
 }
-function detachListeners(){ if(unsubObras)unsubObras(); if(unsubUsers)unsubUsers(); unsubObras=unsubUsers=null; }
+function detachListeners(){ if(unsubObras)unsubObras(); if(unsubUsers)unsubUsers(); if(unsubMeta)unsubMeta();
+  unsubObras=unsubUsers=unsubMeta=null; }
 
 /* ---------- formatters ---------- */
 const fmtBRL=n=>isFinite(n)?n.toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}):'—';
@@ -737,7 +748,7 @@ function renderDash(){
           <th>Descrição</th><th>Categoria</th><th>Fornecedor</th>${isAdmin()?'<th class="td-r">Valor</th>':''}<th>Status</th>${isAdmin()?'<th></th>':''}
         </tr></thead><tbody>
           ${ls.map(l=>{const ps=PAGSTATUS.find(p=>p[0]===l.status)||PAGSTATUS[0];const v=+l.valorRealizado||+l.valorPrevisto||0;
-            return `<tr><td><b>${esc(l.descricao)}</b></td><td>${esc(l.categoria)}</td><td class="muted">${esc(l.fornecedor||'—')}</td>
+            return `<tr><td><b>${esc(l.descricao)}</b>${funcTag(l)}</td><td>${esc(l.categoria)}</td><td class="muted">${esc(l.fornecedor||'—')}</td>
             ${isAdmin()?`<td class="td-r">${fmtBRL2(v)}</td>`:''}
             <td><span class="badge ${ps[1]}">${ps[0]}</span></td>
             ${isAdmin()?`<td><div class="row-actions">
@@ -881,7 +892,7 @@ function obraCustos(o,c){
         <th>Descrição</th><th>Categoria</th><th>Fornecedor</th><th>Data</th>
         <th class="td-r">Previsto</th>${isAdmin()?'<th class="td-r">Realizado</th>':''}<th>Status</th>${isAdmin()?'<th></th>':''}</tr></thead><tbody>
         ${ls.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map(l=>{const ps=PAGSTATUS.find(p=>p[0]===l.status)||PAGSTATUS[0];
-          return `<tr><td><b>${esc(l.descricao)}</b></td><td>${esc(l.categoria)}</td><td class="muted">${esc(l.fornecedor||'—')}</td>
+          return `<tr><td><b>${esc(l.descricao)}</b>${funcTag(l)}</td><td>${esc(l.categoria)}</td><td class="muted">${esc(l.fornecedor||'—')}</td>
           <td class="muted">${dateBR(l.data)}</td><td class="td-r">${fmtBRL2(+l.valorPrevisto||0)}</td>
           ${isAdmin()?`<td class="td-r">${l.valorRealizado?fmtBRL2(+l.valorRealizado):'—'}</td>`:''}
           <td><span class="badge ${ps[1]}">${ps[0]}</span></td>
@@ -914,6 +925,26 @@ function obraCron(o){
 
 /* ---- CUSTOS (consolidado) ---- */
 let custFilter='Todas';
+// resumo das retiradas de empreita agrupadas por funcionário (todas as obras)
+function empreitaResumoHTML(){
+  const por={};
+  state.obras.forEach(o=>(o.lancamentos||[]).filter(l=>l.categoria==='Empreita').forEach(l=>{
+    const k=l.funcionarioNome||'(sem funcionário)';
+    if(!por[k])por[k]={pago:0,prev:0,n:0};
+    const v=+l.valorRealizado||+l.valorPrevisto||0;
+    por[k].n++; por[k].prev+=v; if(l.status==='Pago')por[k].pago+=v;
+  }));
+  const linhas=Object.entries(por).sort((a,b)=>b[1].prev-a[1].prev);
+  if(!linhas.length)return '';
+  const total=linhas.reduce((s,[,v])=>s+v.prev,0);
+  return `<div class="card mb">
+    <div class="card-head"><h3>Empreita por funcionário</h3><span class="muted mono">Total ${fmtBRL(total)}</span></div>
+    <div style="overflow-x:auto"><table><thead><tr><th>Funcionário</th><th class="td-r">Retiradas</th><th class="td-r">Pago</th><th class="td-r">Total</th></tr></thead><tbody>
+      ${linhas.map(([nome,v])=>`<tr><td><b>${esc(nome)}</b></td><td class="td-r">${v.n}</td>
+        <td class="td-r">${fmtBRL(v.pago)}</td><td class="td-r"><b>${fmtBRL(v.prev)}</b></td></tr>`).join('')}
+    </tbody></table></div>
+  </div>`;
+}
 function renderCustos(){
   if(!isAdmin()){document.getElementById('page-custos').innerHTML=emptyHTML('Sem permissão para ver custos');return;}
   let all=[];
@@ -932,11 +963,12 @@ function renderCustos(){
     <div class="toolbar"><div class="chip-row">
       ${['Todas',...CATS].map(c=>`<div class="chip ${custFilter===c?'active':''}" onclick="custFilter='${c}';renderCustos()">${c}</div>`).join('')}
     </div></div>
+    ${empreitaResumoHTML()}
     <div class="card">
       ${all.length?`<div style="overflow-x:auto"><table><thead><tr>
         <th>Obra</th><th>Descrição</th><th>Categoria</th><th>Data</th><th class="td-r">Previsto</th><th class="td-r">Realizado</th><th>Status</th><th></th></tr></thead><tbody>
         ${all.map(l=>{const ps=PAGSTATUS.find(p=>p[0]===l.status)||PAGSTATUS[0];
-          return `<tr onclick="openObra('${l.obraId}')" style="cursor:pointer"><td><b>${esc(l.obra)}</b></td><td>${esc(l.descricao)}</td>
+          return `<tr onclick="openObra('${l.obraId}')" style="cursor:pointer"><td><b>${esc(l.obra)}</b></td><td>${esc(l.descricao)}${funcTag(l)}</td>
           <td>${esc(l.categoria)}</td><td class="muted">${dateBR(l.data)}</td>
           <td class="td-r">${fmtBRL2(+l.valorPrevisto||0)}</td><td class="td-r">${l.valorRealizado?fmtBRL2(+l.valorRealizado):'—'}</td>
           <td><span class="badge ${ps[1]}">${ps[0]}</span></td>
@@ -1116,6 +1148,14 @@ function renderConfig(){
       </tbody></table></div>
       <p class="hint">Perfil <b>Usuário</b> não vê valores financeiros (VGV, custos, lucro, relatórios). Desativar bloqueia o acesso na hora, sem apagar a conta.</p>
     </div>
+    <div class="card mt admin-only">
+      <div class="card-head"><h3>Funcionários (empreita)</h3><button class="btn btn-primary btn-sm" style="width:auto;padding:8px 14px" onclick="openFuncModal()">+ Funcionário</button></div>
+      ${listFuncs().length?`<div style="overflow-x:auto"><table><thead><tr><th>Nome</th><th>Função</th><th></th></tr></thead><tbody>
+        ${listFuncs().map(f=>`<tr><td><b>${esc(f.nome)}</b></td><td class="muted">${esc(f.funcao||'—')}</td>
+        <td><div class="row-actions"><button class="icon-btn del" title="Remover" onclick="removeFuncionario('${f.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></div></td></tr>`).join('')}
+      </tbody></table></div>`:`<p class="muted">Nenhum funcionário cadastrado. Eles também podem ser criados na hora do lançamento, pelo botão "+" ao lado do campo Funcionário.</p>`}
+      <p class="hint">Use a categoria <b>Empreita</b> nos lançamentos para registrar as retiradas de cada funcionário.</p>
+    </div>
     <div class="card mt">
       <div class="card-head"><h3>Aparência</h3></div>
       <div class="flex between"><span>Tema escuro / claro</span><button class="btn btn-ghost btn-sm" style="width:auto" onclick="toggleTheme();renderConfig()">Alternar (${state.theme==='dark'?'escuro':'claro'})</button></div>
@@ -1142,6 +1182,71 @@ function field(lbl,id,val='',type='text',ph='',sfx=''){
 }
 function sel(lbl,id,opts,val){return `<div class="field"><label>${lbl}</label><select class="input" id="${id}">
   ${opts.map(o=>`<option ${o===val?'selected':''}>${o}</option>`).join('')}</select></div>`;}
+// select extensível: com botão "+" para admin adicionar opções (kind: 'tipo' | 'categoria')
+function selExt(lbl,id,opts,val,kind,onchange){
+  const add = (isAdmin()&&kind) ? `<button type="button" class="btn-icon" title="Adicionar opção" onclick="openAddOpt('${kind}','${id}')" style="flex:0 0 38px">+</button>` : '';
+  return `<div class="field"><label>${lbl}</label>
+    <div class="flex" style="gap:8px;align-items:stretch">
+      <select class="input" id="${id}" ${onchange?`onchange="${onchange}"`:''} style="flex:1">${opts.map(o=>`<option ${o===val?'selected':''}>${esc(o)}</option>`).join('')}</select>
+      ${add}</div></div>`;
+}
+// select de funcionário (valor = id), com "+" para admin
+function selFunc(id,val){
+  const fs=listFuncs();
+  const opts=`<option value="">— selecione o funcionário —</option>`+fs.map(f=>`<option value="${f.id}" ${f.id===val?'selected':''}>${esc(f.nome)}${f.funcao?' — '+esc(f.funcao):''}</option>`).join('');
+  const add = isAdmin()?`<button type="button" class="btn-icon" title="Adicionar funcionário" onclick="openAddOpt('funcionario','${id}')" style="flex:0 0 38px">+</button>`:'';
+  return `<div class="field"><label>Funcionário (empreita)</label>
+    <div class="flex" style="gap:8px;align-items:stretch">
+      <select class="input" id="${id}" style="flex:1">${opts}</select>${add}</div></div>`;
+}
+// mini-prompt sobreposto (fica acima do modal aberto, sem perder o formulário)
+function openAddOpt(kind,selectId){
+  const isFunc=kind==='funcionario';
+  const titulo=isFunc?'Novo funcionário':(kind==='tipo'?'Novo tipo de obra':'Nova categoria');
+  const body=isFunc
+    ? `<div class="field"><label>Nome</label><input class="input" id="mp_nome" placeholder="Ex: João Silva"></div>
+       <div class="field"><label>Função</label><input class="input" id="mp_funcao" placeholder="Ex: Eletricista"></div>`
+    : `<div class="field"><label>Nome</label><input class="input" id="mp_val" placeholder="Digite e confirme"></div>`;
+  const host=document.createElement('div');
+  host.className='overlay open'; host.style.zIndex='130';
+  host.innerHTML=`<div class="modal" style="max-width:420px"><div class="modal-head"><h3>${titulo}</h3>
+    <button class="btn-icon" onclick="this.closest('.overlay').remove()">✕</button></div>
+    <div class="modal-body">${body}<div class="auth-err" id="mp_err" style="margin-top:6px"></div></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="this.closest('.overlay').remove()">Cancelar</button>
+      <button class="btn btn-primary" style="width:auto;padding:11px 22px" id="mp_ok">Adicionar</button></div></div>`;
+  document.body.appendChild(host);
+  host.addEventListener('click',e=>{if(e.target===host)host.remove();});
+  host.querySelector('#mp_ok').onclick=async()=>{
+    const err=host.querySelector('#mp_err'); err.textContent='';
+    try{
+      if(isFunc){
+        const nome=host.querySelector('#mp_nome').value.trim(), funcao=host.querySelector('#mp_funcao').value.trim();
+        if(!nome){err.textContent='Informe o nome.';return;}
+        const f={id:uid(),nome,funcao};
+        await db.collection('meta').doc('lists').set({funcionarios:firebase.firestore.FieldValue.arrayUnion(f)},{merge:true});
+        if(selectId){const s=document.getElementById(selectId);const o=document.createElement('option');o.value=f.id;o.textContent=nome+(funcao?' — '+funcao:'');o.selected=true;s.appendChild(o);}
+      }else{
+        const v=host.querySelector('#mp_val').value.trim();
+        if(!v){err.textContent='Informe o nome.';return;}
+        const field=kind==='tipo'?'tipos':'categorias';
+        await db.collection('meta').doc('lists').set({[field]:firebase.firestore.FieldValue.arrayUnion(v)},{merge:true});
+        if(selectId){const s=document.getElementById(selectId);
+          if(![...s.options].some(op=>op.value===v)){const o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);}
+          s.value=v; if(s.getAttribute('onchange'))s.dispatchEvent(new Event('change'));}
+      }
+      toast('Adicionado','ok'); host.remove();
+    }catch(e){ err.textContent='Erro: '+e.code; }
+  };
+  setTimeout(()=>{const f=host.querySelector('input');if(f)f.focus();},50);
+}
+function removeFuncionario(id){
+  const f=listFuncs().find(x=>x.id===id);
+  confirmModal('Remover funcionário?',`<b>${esc(f?f.nome:'')}</b> sairá da lista (lançamentos já feitos são mantidos).`,async()=>{
+    try{ await db.collection('meta').doc('lists').update({funcionarios:firebase.firestore.FieldValue.arrayRemove(f)}); toast('Removido','ok'); }
+    catch(e){ toast('Erro: '+e.code,'err'); }
+  });
+}
+function openFuncModal(){ openAddOpt('funcionario',null); }
 
 function openObraModal(id=null,prefill=null){
   const o=id?state.obras.find(x=>x.id===id):(prefill||{});
@@ -1152,7 +1257,7 @@ function openObraModal(id=null,prefill=null){
       <div class="fgrid">
         ${field('Nome da obra','f_nome',o.nome||'','text','Ex: Residencial Aurora')}
         ${field('Código','f_codigo',o.codigo||('OBR-'+(state.obras.length+1).toString().padStart(3,'0')))}
-        ${sel('Tipo','f_tipo',TIPOS,o.tipo||TIPOS[0])}
+        ${selExt('Tipo','f_tipo',listTipos(),o.tipo||TIPOS[0],'tipo')}
         ${sel('Status','f_status',STATUS.map(s=>s[0]),o.status||'Planejamento')}
         ${field('Cidade / local','f_cidade',o.cidade||'')}
         ${field('Responsável','f_resp',o.responsavel||'')}
@@ -1300,22 +1405,36 @@ function delObra(id){confirmModal('Excluir obra?','Todos os custos e etapas ser�
 
 function openLancModal(obraId,lid=null){
   const o=state.obras.find(x=>x.id===obraId);const l=lid?o.lancamentos.find(x=>x.id===lid):{};
+  const isEmp=l.categoria==='Empreita';
   openModal(`<div class="modal"><div class="modal-head"><h3>${lid?'Editar lançamento':'Novo lançamento'}</h3>
     <button class="btn-icon" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       ${field('Descrição','l_desc',l.descricao||'','text','Ex: Concreto usinado fck 25')}
-      <div class="fgrid-2">${sel('Categoria','l_cat',CATS,l.categoria||CATS[0])}${field('Fornecedor','l_forn',l.fornecedor||'')}</div>
+      <div class="fgrid-2">${selExt('Categoria','l_cat',listCats(),l.categoria||CATS[0],'categoria','onLancCat()')}${field('Fornecedor','l_forn',l.fornecedor||'')}</div>
+      <div id="l_func_wrap" style="display:${isEmp?'block':'none'}">${selFunc('l_func',l.funcionarioId||'')}</div>
       <div class="fgrid-2">${field('Valor previsto','l_prev',l.valorPrevisto||'','text','0','R$')}${field('Valor realizado','l_real',l.valorRealizado||'','text','0','R$')}</div>
       <div class="fgrid-2">${field('Data','l_data',l.data||new Date().toISOString().slice(0,10),'date')}${sel('Status','l_status',PAGSTATUS.map(p=>p[0]),l.status||'Previsto')}</div>
     </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
       <button class="btn btn-primary" style="width:auto;padding:11px 22px" onclick="saveLanc('${obraId}','${lid||''}')">Salvar</button></div></div>`);
 }
+function onLancCat(){
+  const isEmp=document.getElementById('l_cat').value==='Empreita';
+  document.getElementById('l_func_wrap').style.display=isEmp?'block':'none';
+}
 async function saveLanc(obraId,lid){
   const o=state.obras.find(x=>x.id===obraId);if(!o)return;const g=x=>document.getElementById(x).value;
   const desc=g('l_desc').trim();if(!desc){toast('Informe a descrição','err');return;}
-  const d={descricao:desc,categoria:g('l_cat'),fornecedor:g('l_forn').trim(),valorPrevisto:num(g('l_prev')),
-    valorRealizado:num(g('l_real')),data:g('l_data'),status:g('l_status'),autor:session.name};
+  const cat=g('l_cat');
+  let funcionarioId='', funcionarioNome='';
+  if(cat==='Empreita'){
+    funcionarioId=g('l_func')||'';
+    if(!funcionarioId){toast('Selecione o funcionário da empreita','err');return;}
+    funcionarioNome=funcNome(funcionarioId);
+  }
+  const d={descricao:desc,categoria:cat,fornecedor:g('l_forn').trim(),valorPrevisto:num(g('l_prev')),
+    valorRealizado:num(g('l_real')),data:g('l_data'),status:g('l_status'),autor:session.name,
+    funcionarioId,funcionarioNome};
   const arr=(o.lancamentos||[]).slice();
   if(lid){const i=arr.findIndex(x=>x.id===lid);if(i>=0)arr[i]={...arr[i],...d};}
   else{arr.push({id:uid(),...d});}
