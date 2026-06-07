@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ObraViva — Gestão de Obras Civis</title>
+<title>DaVincit Pro — Gestão de Obras</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
@@ -349,8 +349,9 @@ tbody tr:hover{background:var(--surface2)}
   background-size:min(560px,52vw);opacity:.05;filter:saturate(1.1)}
 .card,.kpi{background-color:color-mix(in srgb,var(--surface) 90%,transparent)!important;backdrop-filter:blur(2px)}
 .result-panel{backdrop-filter:blur(3px)}
-.brand .logo,.sb-head .logo{background:transparent!important;box-shadow:none!important;overflow:hidden}
+.brand .logo,.sb-head .logo{background:transparent!important;box-shadow:0 6px 18px -5px rgba(255,176,46,.55)!important;overflow:visible}
 .brand .logo img,.sb-head .logo img{width:100%;height:100%;object-fit:contain}
+.brand .logo .lmk,.sb-head .logo .lmk{width:100%;height:100%;display:block}
 /* ---- welcome ---- */
 #welcome{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
   background:radial-gradient(900px 600px at 50% 40%,rgba(255,176,46,.10),transparent 60%),var(--bg);
@@ -463,8 +464,8 @@ tbody tr:hover{background:var(--surface2)}
 <div class="auth-wrap" id="authWrap">
   <div class="auth-card">
     <div class="brand">
-      <div class="logo">OV</div>
-      <div class="name">Obra<span>Viva</span></div>
+      <div class="logo"><svg class="lmk" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lgrad" x1="5" y1="3" x2="43" y2="45" gradientUnits="userSpaceOnUse"><stop stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent-d)"/></linearGradient></defs><rect x="1" y="1" width="46" height="46" rx="13" fill="url(#lgrad)"/><rect x="1.5" y="1.5" width="45" height="45" rx="12.5" fill="none" stroke="#fff" stroke-opacity=".22"/><path d="M12.5 32.5 L24 12 L35.5 32.5" fill="none" stroke="#FFF7EC" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.4 32.5 L24 22 L29.6 32.5" fill="none" stroke="#FFF7EC" stroke-opacity=".48" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="24" cy="35.5" r="1.7" fill="#FFF7EC"/></svg></div>
+      <div class="name">DaVincit <span>Pro</span></div>
     </div>
     <div class="auth-sub" id="authSub">Gestão financeira e de viabilidade de obras civis.</div>
     <div id="loginForm">
@@ -492,8 +493,8 @@ tbody tr:hover{background:var(--surface2)}
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sb-head">
-      <div class="logo">OV</div>
-      <div class="name">Obra<span>Viva</span></div>
+      <div class="logo"><svg class="lmk" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lgrad" x1="5" y1="3" x2="43" y2="45" gradientUnits="userSpaceOnUse"><stop stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent-d)"/></linearGradient></defs><rect x="1" y="1" width="46" height="46" rx="13" fill="url(#lgrad)"/><rect x="1.5" y="1.5" width="45" height="45" rx="12.5" fill="none" stroke="#fff" stroke-opacity=".22"/><path d="M12.5 32.5 L24 12 L35.5 32.5" fill="none" stroke="#FFF7EC" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.4 32.5 L24 22 L29.6 32.5" fill="none" stroke="#FFF7EC" stroke-opacity=".48" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="24" cy="35.5" r="1.7" fill="#FFF7EC"/></svg></div>
+      <div class="name">DaVincit <span>Pro</span></div>
     </div>
     <nav class="sb-nav" id="sbNav"></nav>
     <div class="sb-foot">
@@ -554,7 +555,7 @@ const ICONS={
 const NAV=[
   {id:'dash',label:'Painel',title:'Painel'},
   {id:'obras',label:'Obras',title:'Obras'},
-  {id:'custos',label:'Custos & Lançamentos',title:'Custos & Lançamentos'},
+  {id:'custos',label:'Custos & Lançamentos',title:'Custos & Lançamentos',admin:true},
   {id:'viab',label:'Viabilidade · VGV',title:'Estudo de Viabilidade',admin:true},
   {id:'rel',label:'Relatórios',title:'Relatórios',admin:true},
   {id:'config',label:'Configurações',title:'Configurações',admin:true},
@@ -574,12 +575,13 @@ const CART_PCT=0.006;       // emolumentos de averbação da construção (~0,6%
 const CART_UNID=900;        // custa fixa aproximada por unidade (individualização/averbação)
 const OUTRAS_PCT=0.002;     // taxas de habite-se, CND, baixa do RET/afetação (~0,2%)
 
-let state={users:[],obras:[],lists:{tipos:[],categorias:[],funcionarios:[]},theme:'dark'}, session=null, currentObra=null, currentTab='visao';
+let state={users:[],obras:[],lists:{tipos:[],categorias:[],subcategorias:[],funcionarios:[]},theme:'dark'}, session=null, currentObra=null, currentTab='visao';
 let unsubObras=null, unsubUsers=null, unsubSelf=null, unsubMeta=null;
 // listas efetivas (padrão + personalizadas salvas no Firestore)
 function listTipos(){ return [...TIPOS, ...((state.lists.tipos||[]).filter(t=>!TIPOS.includes(t)))]; }
 function listCats(){ return [...CATS, ...((state.lists.categorias||[]).filter(c=>!CATS.includes(c)))]; }
 function listFuncs(){ return (state.lists.funcionarios||[]); }
+function listSub(){ return (state.lists.subcategorias||[]); }
 // total de unidades = comuns + gardens + coberturas
 function totalUnidades(o){ return (+o.numUnidades||0)+(o.hasGarden?(+o.gardenQtd||0):0)+(o.hasCobertura?(+o.coberturaQtd||0):0); }
 function funcNome(id,obra){ const fs=(obra&&obra.funcionarios)||[]; const f=fs.find(x=>x.id===id); return f?`${f.nome}${f.funcao?' — '+f.funcao:''}`:''; }
@@ -592,7 +594,6 @@ function loadTheme(){ state.theme=localStorage.getItem(THEMEKEY)||'dark';
   applyBranding(); }
 function applyBranding(){
   document.documentElement.style.setProperty('--logo',`url("${LOGO}")`);
-  document.querySelectorAll('.brand .logo,.sb-head .logo').forEach(el=>{el.innerHTML=`<img src="${LOGO}" alt="logo">`;});
 }
 // re-renderiza a página ativa quando os dados do Firestore mudam
 function refreshActive(){
@@ -620,7 +621,7 @@ function attachListeners(){
     },err=>{});
   }
   unsubMeta=db.collection('meta').doc('lists').onSnapshot(d=>{
-    state.lists = d.exists ? {tipos:[],categorias:[],funcionarios:[],...d.data()} : {tipos:[],categorias:[],funcionarios:[]};
+    state.lists = d.exists ? {tipos:[],categorias:[],subcategorias:[],funcionarios:[],...d.data()} : {tipos:[],categorias:[],subcategorias:[],funcionarios:[]};
     if(document.getElementById('page-config').classList.contains('active'))renderConfig();
   },err=>{});
 }
@@ -1385,6 +1386,8 @@ async function setEtapaProg(obraId,eid,v){
 
 /* ---- CUSTOS (consolidado) ---- */
 let custFilter='Todas';
+let relCat=''; // categoria selecionada no relatório por categoria
+function setRelCat(v){ relCat=v; renderRel(); }
 // resumo das retiradas de empreita agrupadas por funcionário (todas as obras)
 function empreitaResumoHTML(){
   const por={};
@@ -1565,6 +1568,13 @@ function renderRel(){
   state.obras.forEach(o=>(o.lancamentos||[]).forEach(l=>porCat[l.categoria]=(porCat[l.categoria]||0)+(+l.valorRealizado||+l.valorPrevisto||0)));
   const catEntries=Object.entries(porCat).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
   const maxCat=Math.max(...catEntries.map(([,v])=>v),1);
+  // custo por SUBCATEGORIA (todas as obras)
+  const porSub={}; state.obras.forEach(o=>(o.lancamentos||[]).forEach(l=>{const k=(l.subcategoria||'').trim()||'(sem subcategoria)';porSub[k]=(porSub[k]||0)+(+l.valorRealizado||+l.valorPrevisto||0);}));
+  const subEntries=Object.entries(porSub).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const maxSub=Math.max(...subEntries.map(([,v])=>v),1);
+  // relatório por categoria selecionada (lista de lançamentos + total)
+  const relLines=[]; let relTot=0;
+  if(relCat){ state.obras.forEach(o=>(o.lancamentos||[]).filter(l=>l.categoria===relCat).forEach(l=>{const v=+l.valorRealizado||+l.valorPrevisto||0;relTot+=v;relLines.push({o,l,v});})); relLines.sort((a,b)=>b.v-a.v); }
   // status de pagamento
   let pago=0,pend=0,prev=0;
   state.obras.forEach(o=>(o.lancamentos||[]).forEach(l=>{const v=+l.valorRealizado||+l.valorPrevisto||0;const s=effStatus(l);if(s==='Pago')pago+=v;else if(s==='Pendente')pend+=v;else prev+=v;}));
@@ -1616,6 +1626,31 @@ function renderRel(){
       </div>
     </div>
 
+    <div class="card mt"><div class="card-head"><h3>Relatório por categoria</h3>
+      <select class="input" style="width:auto;min-width:210px" onchange="setRelCat(this.value)">
+        <option value="">— selecione a categoria —</option>
+        ${listCats().map(k=>`<option ${k===relCat?'selected':''}>${esc(k)}</option>`).join('')}
+      </select></div>
+      ${relCat?`
+        <div class="flex between wrap" style="gap:10px;margin:6px 0 14px">
+          <div class="muted">Total gasto em <b style="color:var(--text)">${esc(relCat)}</b> · ${relLines.length} lançamento(s)</div>
+          <div class="mono" style="font-size:23px;font-weight:800;color:var(--accent)">${fmtBRL(relTot)}</div>
+        </div>
+        ${relLines.length?`<div style="overflow-x:auto"><table><thead><tr><th>Obra</th><th>Descrição</th><th>Subcategoria</th><th>Data</th><th>Status</th><th class="td-r">Valor</th></tr></thead><tbody>
+          ${relLines.map(({o,l,v})=>{const ps=PAGSTATUS.find(p=>p[0]===effStatus(l))||PAGSTATUS[0];
+            return `<tr onclick="openObra('${o.id}')" style="cursor:pointer"><td><b>${esc(o.nome)}</b></td><td>${esc(l.descricao)}${funcTag(l)}</td>
+            <td class="muted">${esc(l.subcategoria||'—')}</td><td class="muted">${dateBR(l.data)}</td>
+            <td><span class="badge ${ps[1]}">${ps[0]}</span></td><td class="td-r mono">${fmtBRL2(v)}</td></tr>`;}).join('')}
+          </tbody></table></div>`:emptyHTML('Nenhum lançamento nesta categoria')}
+      `:`<p class="muted">Escolha uma categoria acima para ver o total gasto e todos os lançamentos dela (material, empreita, etc.).</p>`}
+    </div>
+
+    <div class="card mt"><div class="card-head"><h3>Custo por subcategoria</h3></div>
+      ${subEntries.length?subEntries.map(([k,v],i)=>`
+        <div style="margin-bottom:11px"><div class="flex between" style="font-size:12.5px;margin-bottom:5px"><span>${esc(k)}</span><b class="mono">${fmtBRL(v)}</b></div>
+        <div class="progress led"><i style="width:${v/maxSub*100}%;background:${catColors[i%catColors.length]};box-shadow:0 0 12px -2px ${catColors[i%catColors.length]}"></i></div></div>`).join(''):emptyHTML('Cadastre subcategorias nos lançamentos para ver este controle')}
+    </div>
+
     <div class="card mt"><div class="card-head"><h3>Obras por status</h3></div>
       <div class="kpi-grid" style="margin-bottom:0">${STATUS.map(s=>`
         <div class="kpi"><div class="klabel">${s[0]}</div><div class="kval mono">${stCount[s[0]]||0}</div></div>`).join('')}</div>
@@ -1639,7 +1674,7 @@ function exportCSV(){
     .map(x=>`"${String(x??'').replace(/"/g,'""')}"`).join(';');});
   const csv=[head.join(';'),...lines].join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));
-  a.download='obraviva_relatorio.csv';a.click();toast('CSV exportado','ok');
+  a.download='davincit_relatorio.csv';a.click();toast('CSV exportado','ok');
 }
 
 /* ---- CONFIG ---- */
@@ -1731,7 +1766,7 @@ function selFunc(id,val,obraId){
 // funcionário é POR OBRA (atrelado à obra; não aparece em outras)
 function openAddOpt(kind,selectId,obraId){
   const isFunc=kind==='funcionario';
-  const titulo=isFunc?'Novo funcionário (empreita)':(kind==='tipo'?'Novo tipo de obra':'Nova categoria');
+  const titulo=isFunc?'Novo funcionário (empreita)':(kind==='tipo'?'Novo tipo de obra':(kind==='subcategoria'?'Nova subcategoria':'Nova categoria'));
   const body=isFunc
     ? `<div class="field"><label>Nome</label><input class="input" id="mp_nome" placeholder="Ex: João Silva"></div>
        <div class="field"><label>Função</label><input class="input" id="mp_funcao" placeholder="Ex: Eletricista"></div>
@@ -1763,7 +1798,7 @@ function openAddOpt(kind,selectId,obraId){
       }else{
         const v=host.querySelector('#mp_val').value.trim();
         if(!v){err.textContent='Informe o nome.';return;}
-        const field=kind==='tipo'?'tipos':'categorias';
+        const field=kind==='tipo'?'tipos':(kind==='subcategoria'?'subcategorias':'categorias');
         await db.collection('meta').doc('lists').set({[field]:firebase.firestore.FieldValue.arrayUnion(v)},{merge:true});
         if(selectId){const s=document.getElementById(selectId);
           if(![...s.options].some(op=>op.value===v)){const op=document.createElement('option');op.value=v;op.textContent=v;s.appendChild(op);}
@@ -2000,8 +2035,14 @@ function openLancModal(obraId,lid=null){
       ${field('Descrição','l_desc',l.descricao||'','text','Ex: Concreto usinado fck 25')}
       <div class="fgrid-2">
         ${selExt('Categoria','l_cat',listCats(),l.categoria||CATS[0],'categoria','onLancCat()')}
-        <div id="l_forn_wrap">${field('Fornecedor','l_forn',l.fornecedor||'')}</div>
+        <div class="field"><label>Subcategoria</label>
+          <div class="flex" style="gap:8px;align-items:stretch">
+            <select class="input" id="l_sub" style="flex:1"><option value="">— (nenhuma) —</option>
+              ${listSub().map(s=>`<option ${s===l.subcategoria?'selected':''}>${esc(s)}</option>`).join('')}</select>
+            ${isAdmin()?`<button type="button" class="btn-icon" title="Adicionar subcategoria" onclick="openAddOpt('subcategoria','l_sub')" style="flex:0 0 38px">+</button>`:''}
+          </div></div>
       </div>
+      <div id="l_forn_wrap">${field('Fornecedor','l_forn',l.fornecedor||'')}</div>
       <div id="l_func_wrap" style="display:${isEmp?'block':'none'}">${selFunc('l_func',l.funcionarioId||'',obraId)}</div>
       <div class="fgrid-2">
         <div id="l_prev_wrap">${field('Valor previsto','l_prev',l.valorPrevisto||'','text','0','R$')}</div>
@@ -2032,7 +2073,7 @@ async function saveLanc(obraId,lid){
     funcionarioNome=funcNome(funcionarioId,o);
     fornecedor=''; valorPrevisto=0;
   }
-  const d={descricao:desc,categoria:cat,fornecedor,valorPrevisto,
+  const d={descricao:desc,categoria:cat,subcategoria:g('l_sub')||'',fornecedor,valorPrevisto,
     valorRealizado:num(g('l_real')),data:g('l_data'),status:g('l_status'),autor:session.name,
     funcionarioId,funcionarioNome};
   const arr=(o.lancamentos||[]).slice();
@@ -2132,7 +2173,7 @@ function confirmModal(title,msg,onYes){
 /* ---- backup ---- */
 function exportBackup(){const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify({obras:state.obras},null,2)],{type:'application/json'}));
-  a.download='obraviva_export.json';a.click();toast('Dados exportados','ok');}
+  a.download='davincit_export.json';a.click();toast('Dados exportados','ok');}
 
 /* ---- empty state ---- */
 function emptyHTML(msg,goId=null,onclick=null,btn='+ Criar agora'){
