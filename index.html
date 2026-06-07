@@ -368,13 +368,7 @@ tbody tr:hover{background:var(--surface2)}
   background:linear-gradient(120deg,var(--accent),#fff,var(--accent));background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;
   animation:shine 2.2s linear infinite,fade .6s .35s backwards}
 @keyframes shine{to{background-position:200% center}}
-/* ---- slider de progresso (cronograma) ---- */
-input[type=range].prog-slider{-webkit-appearance:none;appearance:none;width:100%;height:9px;border-radius:6px;
-  background:var(--surface3);outline:none;cursor:pointer}
-input[type=range].prog-slider::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;
-  background:linear-gradient(135deg,var(--accent),var(--accent-d));box-shadow:0 0 10px var(--accent),0 2px 6px rgba(0,0,0,.4);cursor:grab;border:2px solid #1A1206}
-input[type=range].prog-slider::-moz-range-thumb{width:20px;height:20px;border-radius:50%;border:2px solid #1A1206;
-  background:var(--accent);box-shadow:0 0 10px var(--accent);cursor:grab}
+/* ---- progresso geral ---- */
 .led{box-shadow:0 0 16px -2px var(--accent),inset 0 0 0 1px rgba(255,176,46,.25)}
 
 /* ---- cronograma / gantt ---- */
@@ -389,7 +383,7 @@ input[type=range].prog-slider::-moz-range-thumb{width:20px;height:20px;border-ra
 .gantt-label .d{color:var(--faint);font-size:11px;font-family:var(--mono)}
 .gantt-track{position:relative;height:30px;background:var(--surface2);border-radius:8px;overflow:hidden;border:1px solid var(--border)}
 .gantt-bar{position:absolute;top:3px;bottom:3px;border-radius:6px;background:var(--surface3);overflow:hidden;min-width:8px;transition:left .3s,width .3s}
-.gantt-bar .gf{position:absolute;inset:0;border-radius:6px;transition:width .35s cubic-bezier(.16,.84,.3,1)}
+.gantt-bar .gf{position:absolute;inset:0;border-radius:6px;transition:width .45s cubic-bezier(.16,.84,.3,1)}
 .gantt-bar .gp{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10.5px;font-family:var(--mono);font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5)}
 .gantt-today{position:absolute;top:-16px;bottom:0;width:2px;background:var(--accent);z-index:3;box-shadow:0 0 8px var(--accent)}
 .gantt-today::before{content:'hoje';position:absolute;top:-3px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--accent);font-family:var(--mono);font-weight:700}
@@ -400,32 +394,66 @@ input[type=range].prog-slider::-moz-range-thumb{width:20px;height:20px;border-ra
 .st-prog{color:var(--blue);background:color-mix(in srgb,var(--blue) 16%,transparent)}
 .st-late{color:var(--danger);background:color-mix(in srgb,var(--danger) 16%,transparent)}
 .st-done{color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,transparent)}
-.etapa-card{padding:16px;border:1px solid var(--border);border-radius:var(--rad-s);background:var(--surface2);margin-bottom:12px;transition:border-color .2s}
+.etapa-card{padding:16px;border:1px solid var(--border);border-radius:var(--rad-s);background:var(--surface2);margin-bottom:12px;transition:border-color .25s,box-shadow .25s;position:relative;overflow:hidden}
 .etapa-card.late{border-color:color-mix(in srgb,var(--danger) 45%,var(--border))}
-.etapa-card.done{border-color:color-mix(in srgb,var(--ok) 40%,var(--border))}
-/* barra de progresso interativa (arrastável) */
-.pbar{position:relative;height:34px;border-radius:9px;background:var(--surface2);border:1px solid var(--border);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;margin-top:12px}
+.etapa-card.done{border-color:color-mix(in srgb,var(--ok) 45%,var(--border));box-shadow:0 0 0 1px color-mix(in srgb,var(--ok) 20%,transparent)}
+
+/* ===== barra de progresso interativa — premium ===== */
+.pbar{position:relative;height:44px;border-radius:13px;background:var(--surface);border:1px solid var(--border);
+  cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;margin-top:14px;
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.16)}
 .pbar:active{cursor:grabbing}
-.pbar .ptrack{position:absolute;inset:0;border-radius:9px;overflow:hidden}
-.pbar .pfill{position:absolute;left:0;top:0;bottom:0;border-radius:9px 0 0 9px;transition:width .12s ease,background .2s;background-image:linear-gradient(90deg,transparent,rgba(255,255,255,.08))}
-.pbar.animate .pfill{transition:width .4s cubic-bezier(.16,.84,.3,1),background .2s}
-.pbar .ptick{position:absolute;top:7px;bottom:7px;width:1px;background:color-mix(in srgb,var(--faint) 45%,transparent);pointer-events:none;z-index:1}
-.pbar .ppct{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-weight:800;font-size:12px;color:var(--text);pointer-events:none;z-index:2}
-.pbar .phandle{position:absolute;top:50%;width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid var(--pcol,var(--accent));box-shadow:0 2px 7px rgba(0,0,0,.32);transform:translate(-50%,-50%);transition:left .12s ease,transform .12s,box-shadow .12s,border-color .2s;z-index:3}
-.pbar.animate .phandle{transition:left .4s cubic-bezier(.16,.84,.3,1),transform .12s,box-shadow .12s,border-color .2s}
-.pbar.dragging .phandle,.pbar:hover .phandle{transform:translate(-50%,-50%) scale(1.16);box-shadow:0 0 0 6px color-mix(in srgb,var(--pcol,var(--accent)) 20%,transparent),0 2px 9px rgba(0,0,0,.35)}
-.pbar .pbub{position:absolute;top:-31px;transform:translateX(-50%);background:var(--pcol,var(--accent));color:#1A1206;font-family:var(--mono);font-weight:800;font-size:11.5px;padding:3px 8px;border-radius:7px;pointer-events:none;opacity:0;transition:opacity .15s;white-space:nowrap;z-index:4}
+.pbar .ptrack{position:absolute;inset:0;border-radius:13px;overflow:hidden}
+.pbar .pfill{position:absolute;left:0;top:0;bottom:0;border-radius:13px 0 0 13px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--pcol,var(--accent)) 82%,#fff),var(--pcol,var(--accent)));
+  transition:width .14s cubic-bezier(.22,.61,.36,1),background .25s}
+.pbar .pfill::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent);background-size:200% 100%;
+  opacity:0;transition:opacity .25s;animation:pshine 2s linear infinite}
+.pbar:hover .pfill::after,.pbar.dragging .pfill::after{opacity:1}
+@keyframes pshine{to{background-position:-200% 0}}
+.pbar.sweep .pfill{transition:width .62s cubic-bezier(.16,.84,.3,1),background .3s}
+.pbar.sweep .phandle{transition:left .62s cubic-bezier(.16,.84,.3,1),transform .14s,box-shadow .14s,border-color .25s}
+.pbar.sweep .pbub{transition:left .62s cubic-bezier(.16,.84,.3,1),opacity .2s}
+/* marcador de PLANO: onde a etapa deveria estar hoje (pelas datas) */
+.pbar .pplan{position:absolute;top:-7px;bottom:-7px;width:0;border-left:2px dashed color-mix(in srgb,var(--text) 40%,transparent);z-index:2;pointer-events:none}
+.pbar .pplan::after{content:'plano';position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:8px;font-family:var(--mono);font-weight:700;color:var(--muted);letter-spacing:.04em}
+.pbar .ptick{position:absolute;top:9px;bottom:9px;width:1px;background:color-mix(in srgb,var(--faint) 38%,transparent);pointer-events:none;z-index:1}
+.pbar .ppct{position:absolute;right:13px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-weight:800;font-size:13px;color:var(--text);pointer-events:none;z-index:3;text-shadow:0 1px 2px var(--surface)}
+.pbar .phandle{position:absolute;top:50%;width:26px;height:26px;border-radius:50%;background:#fff;
+  border:3px solid var(--pcol,var(--accent));box-shadow:0 2px 8px rgba(0,0,0,.34);transform:translate(-50%,-50%);
+  transition:left .14s cubic-bezier(.22,.61,.36,1),transform .14s,box-shadow .14s,border-color .25s;z-index:4;
+  display:grid;place-items:center}
+.pbar .phandle::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--pcol,var(--accent));transition:background .25s}
+.pbar.dragging .phandle,.pbar:hover .phandle{transform:translate(-50%,-50%) scale(1.18);
+  box-shadow:0 0 0 7px color-mix(in srgb,var(--pcol,var(--accent)) 18%,transparent),0 2px 10px rgba(0,0,0,.35)}
+.pbar .pbub{position:absolute;top:-34px;transform:translateX(-50%);background:var(--pcol,var(--accent));color:#1A1206;
+  font-family:var(--mono);font-weight:800;font-size:12px;padding:4px 9px;border-radius:8px;pointer-events:none;
+  opacity:0;transition:opacity .18s,left .14s cubic-bezier(.22,.61,.36,1);white-space:nowrap;z-index:5;box-shadow:0 3px 10px rgba(0,0,0,.3)}
 .pbar .pbub::after{content:'';position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);border:4px solid transparent;border-top-color:var(--pcol,var(--accent))}
-.pbar.dragging .pbub{opacity:1}
+.pbar.dragging .pbub,.pbar:hover .pbub,.pbar:focus-visible .pbub{opacity:1}
 .pbar.done{--pcol:var(--ok)}
+.pbar.done .pfill{box-shadow:0 0 20px -3px color-mix(in srgb,var(--ok) 75%,transparent)}
 .pbar:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-@keyframes pdone{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 60%,transparent)}100%{box-shadow:0 0 0 16px transparent}}
-.pbar.cheer{animation:pdone .6s ease-out}
+@keyframes pdone{0%{box-shadow:inset 0 2px 5px rgba(0,0,0,.16),0 0 0 0 color-mix(in srgb,var(--ok) 65%,transparent)}
+  100%{box-shadow:inset 0 2px 5px rgba(0,0,0,.16),0 0 0 18px transparent}}
+.pbar.cheer{animation:pdone .7s ease-out}
+/* leitura plano x real */
+.prog-meta{font-size:12px;font-weight:600;margin-top:9px;display:flex;align-items:center;gap:6px}
+.prog-meta .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+/* chips + botão */
 .pchips{display:flex;gap:6px;flex-wrap:wrap}
-.pchip{font-family:var(--mono);font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;transition:.15s}
-.pchip:hover{border-color:var(--accent);color:var(--text)}
+.pchip{font-family:var(--mono);font-size:11.5px;font-weight:700;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;transition:.15s}
+.pchip:hover{border-color:var(--accent);color:var(--text);transform:translateY(-1px)}
 .pchip.on{background:var(--accent);color:#1A1206;border-color:var(--accent)}
 .pbar.done ~ .prog-foot .pchip.on{background:var(--ok);border-color:var(--ok)}
+.pdone-btn{position:relative;overflow:hidden}
+.pdone-btn svg{vertical-align:-2px;margin-right:3px}
+/* confete */
+.confetti{position:absolute;width:9px;height:9px;border-radius:2px;z-index:20;pointer-events:none;will-change:transform,opacity;
+  animation:confpop var(--dur,900ms) cubic-bezier(.18,.7,.4,1) forwards}
+@keyframes confpop{0%{transform:translate(0,0) rotate(0);opacity:1}
+  100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}}
 
 </style>
 </head>
@@ -636,6 +664,15 @@ function etapaStatus(e){
   if(e.fim && e.fim<hoje) return {key:'late',label:'Atrasada',cls:'st-late',col:'var(--danger)'};
   if(p>0) return {key:'prog',label:'Em andamento',cls:'st-prog',col:'var(--blue)'};
   return {key:'none',label:'Não iniciada',cls:'st-none',col:'var(--surface3)'};
+}
+// progresso ESPERADO de uma etapa hoje, segundo o cronograma (datas)
+function plannedPct(e){
+  if(!e.inicio||!e.fim)return null;
+  const hoje=hojeStr();
+  if(hoje<=e.inicio)return 0;
+  if(hoje>=e.fim)return 100;
+  const tot=daysBetween(e.inicio,e.fim)||1, dec=daysBetween(e.inicio,hoje)||0;
+  return Math.max(0,Math.min(100,Math.round(dec/tot*100)));
 }
 // status efetivo: vencido e não pago vira "Pendente" automaticamente
 function effStatus(l){ return (l.status!=='Pago' && l.data && l.data < hojeStr()) ? 'Pendente' : (l.status||'Previsto'); }
@@ -1156,7 +1193,7 @@ function obraCron(o){
   const geralCol=geral>=100?'var(--ok)':geral>0?'var(--accent)':'var(--surface3)';
   // contexto para arrasto e cálculo do geral ao vivo
   cronCtx={obraId:o.id,items:{}};
-  et.forEach(e=>{const w=Math.max(1,daysBetween(e.inicio,e.fim)||1);cronCtx.items[e.id]={w,p:+e.prog||0,col:etapaStatus(e).col};});
+  et.forEach(e=>{const w=Math.max(1,daysBetween(e.inicio,e.fim)||1);cronCtx.items[e.id]={w,p:+e.prog||0,col:etapaStatus(e).col,e};});
 
   const ganttRows=et.map(e=>{
     const s=etapaStatus(e); const has=e.inicio&&e.fim;
@@ -1177,14 +1214,23 @@ function obraCron(o){
     const s=etapaStatus(e); const p=+e.prog||0;
     const dleft=e.fim?daysBetween(hoje,e.fim):null;
     const dur=daysBetween(e.inicio,e.fim);
+    const plan=plannedPct(e);
     const prazoTxt = s.key==='done' ? 'Concluída'
       : dleft==null ? ''
       : dleft<0 ? `<span style="color:var(--danger)">atrasada ${Math.abs(dleft)} dia${Math.abs(dleft)>1?'s':''}</span>`
       : dleft===0 ? `<span style="color:var(--accent)">vence hoje</span>`
       : `faltam ${dleft} dia${dleft>1?'s':''}`;
-    return `<div class="etapa-card ${s.key==='late'?'late':s.key==='done'?'done':''}">
+    // leitura plano × real (em pontos percentuais)
+    let metaHTML='';
+    if(plan!=null && p<100){
+      const diff=p-plan;
+      if(diff>=8) metaHTML=`<div class="prog-meta" style="color:var(--ok)"><span class="dot" style="background:var(--ok)"></span>Adiantada — ${diff} p.p. à frente do plano (${plan}%)</div>`;
+      else if(diff<=-8) metaHTML=`<div class="prog-meta" style="color:var(--danger)"><span class="dot" style="background:var(--danger)"></span>Atrasada — ${Math.abs(diff)} p.p. abaixo do plano (${plan}%)</div>`;
+      else metaHTML=`<div class="prog-meta" style="color:var(--muted)"><span class="dot" style="background:var(--blue)"></span>No ritmo do cronograma (plano hoje: ${plan}%)</div>`;
+    }
+    return `<div class="etapa-card ${s.key==='late'?'late':s.key==='done'?'done':''}" id="ec_${e.id}">
       <div class="flex between wrap" style="gap:8px">
-        <div class="flex" style="gap:10px;align-items:center"><b style="font-size:15px">${esc(e.nome)}</b><span class="st-pill ${s.cls}">${s.label}</span></div>
+        <div class="flex" style="gap:10px;align-items:center"><b style="font-size:15px">${esc(e.nome)}</b><span class="st-pill ${s.cls}" id="sp_${e.id}">${s.label}</span></div>
         ${isAdmin()?`<div class="flex" style="gap:6px"><a onclick="openEtapaModal('${o.id}','${e.id}')" style="cursor:pointer;font-size:12.5px;font-weight:600">editar</a>
           <a onclick="delEtapa('${o.id}','${e.id}')" style="cursor:pointer;font-size:12.5px;font-weight:600;color:var(--danger)">excluir</a></div>`:''}
       </div>
@@ -1198,13 +1244,15 @@ function obraCron(o){
            onkeydown="cronKey(event,'${o.id}','${e.id}')">
         <div class="ptrack"><div class="pfill" id="pf_${e.id}" style="width:${p}%;background:${p>=100?'var(--ok)':s.col}"></div></div>
         <div class="ptick" style="left:25%"></div><div class="ptick" style="left:50%"></div><div class="ptick" style="left:75%"></div>
+        ${plan!=null&&plan>0&&plan<100?`<div class="pplan" style="left:${plan}%" title="Plano: a etapa deveria estar em ${plan}% hoje"></div>`:''}
         <span class="ppct" id="pp_${e.id}">${p}%</span>
         <div class="phandle" id="ph_${e.id}" style="left:${p}%"></div>
         <div class="pbub" id="pbb_${e.id}" style="left:${p}%">${p}%</div>
       </div>
+      ${metaHTML?`<div id="pm_${e.id}">${metaHTML}</div>`:`<div id="pm_${e.id}"></div>`}
       <div class="prog-foot flex between wrap" style="gap:10px;margin-top:11px;align-items:center">
         <div class="pchips">${[0,25,50,75,100].map(t=>`<button class="pchip ${p===t?'on':''}" id="pc_${e.id}_${t}" onclick="cronChip('${o.id}','${e.id}',${t})">${t}%</button>`).join('')}</div>
-        <button class="btn ${p>=100?'btn-ghost':'btn-primary'} btn-sm" id="pd_${e.id}" style="width:auto;white-space:nowrap;padding:8px 15px" onclick="cronToggleDone('${o.id}','${e.id}')">${p>=100?'↺ Reabrir':'✓ Concluir'}</button>
+        <button class="btn ${p>=100?'btn-ghost':'btn-primary'} btn-sm pdone-btn" id="pd_${e.id}" style="width:auto;white-space:nowrap;padding:8px 16px" onclick="cronToggleDone('${o.id}','${e.id}')">${doneBtnHTML(p>=100)}</button>
       </div>`
       :`<div class="progress ${p>=100?'led':''}" style="margin-top:10px"><i style="width:${p}%;${p<100?`background:${s.col}`:''}"></i></div>
         <div class="flex between" style="margin-top:8px"><span class="muted hint">Progresso</span><span class="mono" style="font-weight:700">${p}%</span></div>`}
@@ -1239,27 +1287,47 @@ function obraCron(o){
 // ===== barra de progresso interativa (arrastável) =====
 let cronCtx={items:{}}, cronDragging=null;
 function cronColor(p,base){ return p>=100?'var(--ok)':(p>0?(base||'var(--accent)'):'var(--surface3)'); }
+// HTML do botão concluir/reabrir (com ícone)
+function doneBtnHTML(done){
+  return done
+    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Reabrir`
+    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Concluir`;
+}
 // posição → % com ímã em 0/25/50/75/100 e passo de 5
 function cronPct(el,clientX){
   const r=el.getBoundingClientRect(); let raw=Math.max(0,Math.min(100,(clientX-r.left)/r.width*100));
   for(const t of [0,25,50,75,100]) if(Math.abs(raw-t)<3) return t;
   return Math.round(raw/5)*5;
 }
-// aplica visual (card + gantt + chips + botão + geral) sem gravar
+// aplica visual (card + gantt + chips + botão + status + geral) sem gravar
 function cronApply(eid,p){
   const it=cronCtx.items&&cronCtx.items[eid]; if(it)it.p=p;
-  const col=cronColor(p,it&&it.col);
+  const col=(it&&it.e)?etapaStatus({...it.e,prog:p}).col:cronColor(p);
   const set=(id,fn)=>{const el=document.getElementById(id);if(el)fn(el);};
   set('pf_'+eid,el=>{el.style.width=p+'%';el.style.background=col;});
   set('pp_'+eid,el=>el.textContent=p+'%');
   set('ph_'+eid,el=>el.style.left=p+'%');
   set('pbb_'+eid,el=>{el.style.left=p+'%';el.textContent=p+'%';});
-  set('pb_'+eid,el=>{el.classList.toggle('done',p>=100);el.setAttribute('aria-valuenow',p);});
+  set('pb_'+eid,el=>{el.classList.toggle('done',p>=100);el.setAttribute('aria-valuenow',p);el.style.setProperty('--pcol',col);});
   set('g_fill_'+eid,el=>{el.style.width=p+'%';el.style.background=col;});
   set('g_pct_'+eid,el=>el.textContent=p+'%');
   [0,25,50,75,100].forEach(t=>set('pc_'+eid+'_'+t,el=>el.classList.toggle('on',p===t)));
-  set('pd_'+eid,el=>{const d=p>=100;el.textContent=d?'↺ Reabrir':'✓ Concluir';el.classList.toggle('btn-primary',!d);el.classList.toggle('btn-ghost',d);});
+  set('pd_'+eid,el=>{const d=p>=100;el.innerHTML=doneBtnHTML(d);el.classList.toggle('btn-primary',!d);el.classList.toggle('btn-ghost',d);});
+  // status pill + leitura plano×real ao vivo
+  if(it&&it.e){const e2={...it.e,prog:p}; const s2=etapaStatus(e2);
+    set('sp_'+eid,el=>{el.className='st-pill '+s2.cls;el.textContent=s2.label;});
+    set('ec_'+eid,el=>{el.classList.toggle('done',s2.key==='done');el.classList.toggle('late',s2.key==='late');});
+    set('pm_'+eid,el=>{el.innerHTML=metaReadout(it.e,p);});
+  }
   cronUpdateGeral();
+}
+// leitura "adiantada/atrasada/no ritmo" ao vivo
+function metaReadout(e,p){
+  const plan=plannedPct(e); if(plan==null||p>=100)return '';
+  const diff=p-plan;
+  if(diff>=8)return `<div class="prog-meta" style="color:var(--ok)"><span class="dot" style="background:var(--ok)"></span>Adiantada — ${diff} p.p. à frente do plano (${plan}%)</div>`;
+  if(diff<=-8)return `<div class="prog-meta" style="color:var(--danger)"><span class="dot" style="background:var(--danger)"></span>Atrasada — ${Math.abs(diff)} p.p. abaixo do plano (${plan}%)</div>`;
+  return `<div class="prog-meta" style="color:var(--muted)"><span class="dot" style="background:var(--blue)"></span>No ritmo do cronograma (plano hoje: ${plan}%)</div>`;
 }
 // recalcula o % geral ao vivo (ponderado pela duração)
 function cronUpdateGeral(){
@@ -1271,22 +1339,42 @@ function cronUpdateGeral(){
   if(f){f.style.width=g+'%';f.style.background=col;if(f.parentElement)f.parentElement.classList.toggle('led',g>=100);}
 }
 function cheer(el){ if(!el)return; el.classList.remove('cheer'); void el.offsetWidth; el.classList.add('cheer'); }
-function cronDown(ev,obraId,eid){ ev.preventDefault(); const el=ev.currentTarget; el.classList.add('dragging'); try{el.setPointerCapture(ev.pointerId);}catch(_){} cronDragging=eid; cronApply(eid,cronPct(el,ev.clientX)); }
+// confete a partir da barra concluída
+function burst(barEl){
+  if(!barEl)return; const card=barEl.closest('.etapa-card')||barEl.parentElement; if(!card)return;
+  const cr=card.getBoundingClientRect(), br=barEl.getBoundingClientRect();
+  const ox=br.right-cr.left-14, oy=br.top-cr.top+br.height/2;
+  const cols=['var(--ok)','var(--accent)','var(--blue)','#fff','#ffd479'];
+  for(let i=0;i<22;i++){
+    const c=document.createElement('div'); c.className='confetti';
+    const ang=(-130+Math.random()*100)*Math.PI/180, dist=60+Math.random()*90;
+    c.style.left=ox+'px'; c.style.top=oy+'px';
+    c.style.background=cols[i%cols.length];
+    c.style.setProperty('--dx',(Math.cos(ang)*dist).toFixed(0)+'px');
+    c.style.setProperty('--dy',(Math.sin(ang)*dist+40).toFixed(0)+'px');
+    c.style.setProperty('--rot',(Math.random()*720-360).toFixed(0)+'deg');
+    c.style.setProperty('--dur',(750+Math.random()*450).toFixed(0)+'ms');
+    if(i%2)c.style.borderRadius='50%';
+    card.appendChild(c); setTimeout(()=>c.remove(),1300);
+  }
+}
+function cronDown(ev,obraId,eid){ ev.preventDefault(); const el=ev.currentTarget; el.classList.remove('sweep'); el.classList.add('dragging'); try{el.setPointerCapture(ev.pointerId);}catch(_){} cronDragging=eid; cronApply(eid,cronPct(el,ev.clientX)); }
 function cronMove(ev,obraId,eid){ if(cronDragging!==eid)return; cronApply(eid,cronPct(ev.currentTarget,ev.clientX)); }
-function cronUp(ev,obraId,eid){ const el=ev.currentTarget; el.classList.remove('dragging'); if(cronDragging!==eid)return; cronDragging=null; const p=cronCtx.items[eid].p; if(p>=100)cheer(el); setEtapaProg(obraId,eid,p); }
+function cronUp(ev,obraId,eid){ const el=ev.currentTarget; el.classList.remove('dragging'); if(cronDragging!==eid)return; cronDragging=null; const p=cronCtx.items[eid].p; if(p>=100){cheer(el);burst(el);} setEtapaProg(obraId,eid,p); }
 function cronKey(ev,obraId,eid){
   const it=cronCtx.items[eid]; if(!it)return; let p=it.p;
   if(ev.key==='ArrowRight'||ev.key==='ArrowUp')p=Math.min(100,p+5);
   else if(ev.key==='ArrowLeft'||ev.key==='ArrowDown')p=Math.max(0,p-5);
   else if(ev.key==='Home')p=0; else if(ev.key==='End')p=100; else return;
-  ev.preventDefault(); cronApply(eid,p); setEtapaProg(obraId,eid,p);
+  ev.preventDefault(); cronApply(eid,p); if(p>=100){const el=document.getElementById('pb_'+eid);cheer(el);burst(el);} setEtapaProg(obraId,eid,p);
 }
-// chips e botão concluir: animam o preenchimento e gravam
+// chips: animação sweep + grava
 function cronChip(obraId,eid,p){
-  const el=document.getElementById('pb_'+eid); if(el)el.classList.add('animate');
-  cronApply(eid,p); if(p>=100)cheer(el);
-  setEtapaProg(obraId,eid,p); setTimeout(()=>el&&el.classList.remove('animate'),420);
+  const el=document.getElementById('pb_'+eid); if(el){el.classList.add('sweep');setTimeout(()=>el.classList.remove('sweep'),650);}
+  cronApply(eid,p); if(p>=100){cheer(el);burst(el);}
+  setEtapaProg(obraId,eid,p);
 }
+// botão Concluir: preenche a barra automaticamente (sweep) e solta confete
 function cronToggleDone(obraId,eid){ const it=cronCtx.items[eid]; if(it)cronChip(obraId,eid, it.p>=100?0:100); }
 // grava o progresso no Firestore
 async function setEtapaProg(obraId,eid,v){
