@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0b0b0d">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DaVincit Pro">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAADfUlEQVR4nO3bQW4jRQCGUQ9hlxmkXImTcsNIaGaJhgUYTEgydtx2Vdf33glq8X9dVqv96fHxy/cDRP00+gAwkgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAtipr19/H32EJQhgh4x/OwLYmdPxC+F6AtgRg9+eAHbirfGL4joCIE0AO+ApfzsCmJzx35YAJmb8tyeASRn/fQhgQsZ/PwKYjPHflwAmYvz3JwDSBDAJT/8xBDAB4x9HAIMZ/1gCGMj4xxPAIMY/BwEMYPzzEMCdGf9cBHBHxj8fAZAmgDvx9J+TAO7A+OclgBsz/rkJ4IaMf34CuBHj3wcB3IDx74cANmb8+yIA0gSwIU///RHARox/nwSwAePfLwFcyfj3TQCk/Tz6ALzt8+dfRh9heW4A0gRAmgBIEwBpAtih54en0UdYhgB2SgTbEMCOieB6Atg5EVxHAAsQwccJYBEi+BgBLEQElxPAYkRwGQEs6PnhSQhnEsDCRPBjAlicCN7n/wBXeu2b/dn+Jfb88HR4+uN59DGmJIAbeBnFDEGI4HV+AoX4OfR/AogRwX8JIEgE/xJAlAj+IoAwEQggrx6BAEhHIAAOh0M3AgHwj2IEAtjIt99+HX2ETdS+JBXABlYZ/6lKBAK40orjPypEIIArrDz+o9Uj8DXoBxSGf2rlL0ndABeqjf9o1ZtAABeojv9oxQgEcKb6+I9Wi0AAZzD+dQngB4x/bQJ4h/Gvz2vQVxh+hxvgBeNvEcAJ4+8RwN+Mv0kAB+Mvywdg/G3Zt0CGz+EQvQGMn6NcAMbPqVQAxs9LmQCMn9ckAjB+3rJ8AMbPe5Z9DWr4nGPJG8D4OddyARg/l1gqAOPnUksFAJcSAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmAtE+Pj1++jz4EjOIGIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmAtD8BroLB7AxIAOcAAAAASUVORK5CYII=">
 <title>DaVincit Pro — Gestão de Obras</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -484,6 +491,10 @@ tbody tr:hover{background:var(--surface2)}
       <button class="btn btn-primary" id="suBtn" onclick="doSetupAdmin()">Criar administrador</button>
     </div>
     <div class="auth-foot" id="authFoot">Acesso restrito · contas gerenciadas pelo administrador</div>
+    <button class="btn btn-ghost btn-sm" style="width:auto;margin:14px auto 0;display:flex;gap:7px;align-items:center;padding:9px 16px" onclick="installApp()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 21h14"/></svg>
+      Instalar app no celular
+    </button>
   </div>
 </div>
 
@@ -1783,6 +1794,14 @@ function renderConfig(){
       <p class="hint">Colunas reconhecidas: Data, Fornecedor, Descrição, Subcategoria, Categoria, Forma de pagamento, Valor e Observações. Os lançamentos são <b>somados</b> aos já existentes da obra.</p>
     </div>
     <div class="card mt">
+      <div class="card-head"><h3>Instalar app</h3></div>
+      <div class="flex between wrap" style="gap:10px"><span class="muted">Instale o DaVincit Pro como aplicativo no celular ou no computador, com ícone próprio e tela cheia.</span>
+        <button class="btn btn-primary btn-sm" style="width:auto;padding:9px 16px;display:flex;gap:7px;align-items:center" onclick="installApp()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 21h14"/></svg>
+          Instalar app
+        </button></div>
+    </div>
+    <div class="card mt">
       <div class="card-head"><h3>Aparência</h3></div>
       <div class="flex between"><span>Tema escuro / claro</span><button class="btn btn-ghost btn-sm" style="width:auto" onclick="toggleTheme();renderConfig()">Alternar (${state.theme==='dark'?'escuro':'claro'})</button></div>
     </div>
@@ -2471,5 +2490,25 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();
     if(document.getElementById('setupForm').style.display!=='none')doSetupAdmin();else doLogin();}});
 </script>
 <div id="welcome"><div class="wlogo"></div><div class="whi">Bem-vindo</div><div class="wname" id="welcomeName">—</div></div>
+<script>
+/* ===== PWA: service worker + instalação ===== */
+(function(){
+  if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
+  window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); window.__deferredPrompt=e; document.documentElement.classList.add('can-install'); });
+  window.addEventListener('appinstalled',function(){ window.__deferredPrompt=null; document.documentElement.classList.remove('can-install'); try{toast('App instalado!','ok');}catch(_){} });
+})();
+function pwaIsStandalone(){ return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true; }
+function pwaIsIOS(){ return /iphone|ipad|ipod/i.test(navigator.userAgent); }
+async function installApp(){
+  var dp=window.__deferredPrompt;
+  if(dp){ dp.prompt(); try{ await dp.userChoice; }catch(_){}; window.__deferredPrompt=null; return; }
+  if(pwaIsStandalone()){ try{toast('O app já está instalado neste aparelho','');}catch(_){}; return; }
+  if(pwaIsIOS()){
+    openModal('<div class="modal" style="max-width:430px"><div class="modal-head"><h3>Instalar no iPhone/iPad</h3><button class="btn-icon" onclick="closeModal()">✕</button></div><div class="modal-body"><p class="muted" style="line-height:1.7">1. Toque no botão <b>Compartilhar</b> (o quadrado com a seta pra cima) na barra do Safari.<br>2. Role e escolha <b>“Adicionar à Tela de Início”</b>.<br>3. Toque em <b>Adicionar</b>. Pronto — o DaVincit Pro vira um app na sua tela inicial.</p></div><div class="modal-foot"><button class="btn btn-primary" style="width:auto;padding:11px 22px" onclick="closeModal()">Entendi</button></div></div>');
+    return;
+  }
+  openModal('<div class="modal" style="max-width:430px"><div class="modal-head"><h3>Instalar o app</h3><button class="btn-icon" onclick="closeModal()">✕</button></div><div class="modal-body"><p class="muted" style="line-height:1.7">No celular (Android/Chrome): abra o menu <b>⋮</b> do navegador e toque em <b>“Instalar app”</b> ou <b>“Adicionar à tela inicial”</b>.<br><br>No computador (Chrome/Edge): clique no ícone de <b>instalar</b> que aparece na barra de endereço, à direita.</p></div><div class="modal-foot"><button class="btn btn-primary" style="width:auto;padding:11px 22px" onclick="closeModal()">Entendi</button></div></div>');
+}
+</script>
 </body>
 </html>
