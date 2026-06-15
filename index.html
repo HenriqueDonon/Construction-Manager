@@ -957,6 +957,90 @@ function shiftDash(dir){const step=dashMode==='semana'?7:1;const d=new Date(dash
 function setDashToday(){dashDate=new Date().toISOString().slice(0,10);renderDash();}
 function onDashDate(v){if(v){dashDate=v;renderDash();}}
 function weekRange(dateStr){const d=new Date(dateStr+'T00:00');const dow=(d.getDay()+6)%7;const mon=new Date(d);mon.setDate(d.getDate()-dow);const sun=new Date(mon);sun.setDate(mon.getDate()+6);const iso=x=>x.toISOString().slice(0,10);return{start:iso(mon),end:iso(sun),mon};}
+// ===== exportar relatório do painel em PDF (respeita modo Dia/Semana) =====
+function dashExportPDF(){
+  const hoje=new Date().toISOString().slice(0,10);
+  const isWeek=dashMode==='semana'; const wk=weekRange(dashDate);
+  const inRange=l=> isWeek ? (l.data>=wk.start && l.data<=wk.end) : (l.data===dashDate);
+  const periodo = isWeek ? `Semana de ${dateBR(wk.start)} a ${dateBR(wk.end)}` : (dashDate===hoje?`Hoje · ${dateBR(dashDate)}`:dateBR(dashDate));
+  const groups=[]; let total=0,count=0;
+  state.obras.forEach(o=>{const ls=(o.lancamentos||[]).filter(inRange);
+    if(ls.length){const sub=ls.reduce((s,l)=>s+(+l.valorRealizado||+l.valorPrevisto||0),0);groups.push({o,ls,sub});total+=sub;count+=ls.length;}});
+  const admin=isAdmin();
+  // tabela por dia (semana)
+  let porDia='';
+  if(isWeek){
+    const names=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom']; const rows=[];
+    for(let i=0;i<7;i++){const d=new Date(wk.mon);d.setDate(wk.mon.getDate()+i);const ds=d.toISOString().slice(0,10);
+      let t=0,c=0;state.obras.forEach(o=>(o.lancamentos||[]).forEach(l=>{if(l.data===ds){c++;t+=(+l.valorRealizado||+l.valorPrevisto||0);}}));
+      rows.push(`<tr><td>${names[i]} · ${dateBR(ds)}</td><td style="text-align:center">${c}</td>${admin?`<td class="r">${fmtBRL2(t)}</td>`:''}</tr>`);}
+    porDia=`<h2>Resumo por dia</h2><table class="t"><thead><tr><th>Dia</th><th style="text-align:center">Lanç.</th>${admin?'<th class="r">Total</th>':''}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
+  }
+  const obrasHTML = groups.length ? groups.map(({o,ls,sub})=>`
+    <div class="obra">
+      <div class="obra-h"><b>${esc(o.nome)}</b> <span class="cod">${esc(o.codigo||'')}</span>${admin?`<span class="sub">Subtotal: <b>${fmtBRL2(sub)}</b></span>`:''}</div>
+      <table class="t"><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Subcategoria</th><th>Fornecedor</th><th>Forma</th><th>Status</th>${admin?'<th class="r">Valor</th>':''}</tr></thead>
+      <tbody>${ls.slice().sort((a,b)=>(a.data||'').localeCompare(b.data||'')).map(l=>{const st=effStatus(l);const v=+l.valorRealizado||+l.valorPrevisto||0;
+        return `<tr><td>${dateBR(l.data)}</td><td>${esc(l.descricao)}${l.funcionarioNome?` <i>(${esc(l.funcionarioNome)})</i>`:''}</td><td>${esc(l.categoria||'—')}</td><td>${esc(l.subcategoria||'—')}</td><td>${esc(l.fornecedor||'—')}</td><td>${esc(l.forma||'—')}</td><td>${esc(st)}</td>${admin?`<td class="r">${fmtBRL2(v)}</td>`:''}</tr>`;}).join('')}</tbody></table>
+    </div>`).join('') : `<p class="vazio">Nenhum lançamento registrado neste período.</p>`;
+
+  const gerado=new Date().toLocaleString('pt-BR');
+  const html=`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório de Custos — ${periodo}</title>
+  <style>
+    @page{size:A4;margin:14mm}
+    *{box-sizing:border-box} body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1a1a1a;margin:0;font-size:12px;line-height:1.45}
+    .top{display:flex;align-items:center;gap:14px;border-bottom:3px solid #B26A00;padding-bottom:14px;margin-bottom:18px}
+    .logo{width:54px;height:54px;border-radius:13px;background:#0b0b0d;display:flex;align-items:center;justify-content:center;flex:0 0 54px}
+    .logo img{width:74%;height:74%;object-fit:contain}
+    .brand{font-size:22px;font-weight:800;letter-spacing:-.02em} .brand span{color:#B26A00}
+    .top .meta{margin-left:auto;text-align:right;font-size:11px;color:#666}
+    h1{font-size:16px;margin:0 0 2px} .period{color:#B26A00;font-weight:700;font-size:13px;margin-bottom:18px}
+    .kpis{display:flex;gap:12px;margin-bottom:20px}
+    .kpi{flex:1;border:1px solid #e5e7eb;border-radius:10px;padding:11px 14px;background:#fafafa}
+    .kpi .l{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#777} .kpi .v{font-size:19px;font-weight:800;margin-top:3px}
+    .kpi.tot .v{color:#B26A00}
+    h2{font-size:13px;margin:20px 0 8px;color:#333;border-left:3px solid #B26A00;padding-left:8px}
+    table.t{width:100%;border-collapse:collapse;margin-bottom:8px;font-size:11px}
+    table.t th{background:#f3f4f6;text-align:left;padding:6px 8px;border-bottom:1px solid #d1d5db;font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:#555}
+    table.t td{padding:5px 8px;border-bottom:1px solid #eee} table.t tr:nth-child(even) td{background:#fafafa}
+    .t .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap} th.r{text-align:right}
+    .obra{margin-bottom:16px;break-inside:avoid} .obra-h{display:flex;align-items:center;gap:10px;margin-bottom:5px;padding:6px 0;border-bottom:1px solid #eee}
+    .obra-h .cod{color:#999;font-size:10px} .obra-h .sub{margin-left:auto;color:#444;font-size:11px}
+    .grand{margin-top:6px;display:flex;justify-content:flex-end} .grand div{background:#0b0b0d;color:#fff;padding:10px 18px;border-radius:10px;font-size:14px}
+    .grand b{color:#FFB02E;font-size:17px;margin-left:10px}
+    .vazio{color:#888;padding:24px;text-align:center;border:1px dashed #ddd;border-radius:10px}
+    .foot{margin-top:22px;padding-top:10px;border-top:1px solid #eee;font-size:10px;color:#999;display:flex;justify-content:space-between}
+    @media print{.noprint{display:none}}
+    .noprint{position:fixed;top:12px;right:12px;display:flex;gap:8px}
+    .noprint button{font:inherit;font-weight:700;padding:9px 16px;border-radius:8px;border:none;cursor:pointer}
+    .pr{background:#B26A00;color:#fff} .cl{background:#eee;color:#333}
+  </style></head><body>
+    <div class="noprint"><button class="pr" onclick="window.print()">Imprimir / Salvar PDF</button><button class="cl" onclick="window.close()">Fechar</button></div>
+    <div class="top">
+      <div class="logo"><img src="${LOGO}" alt="Vincit"></div>
+      <div><div class="brand">DaVincit <span>Pro</span></div><div style="font-size:11px;color:#777">Gestão de obras · Vincit</div></div>
+      <div class="meta">Relatório ${isWeek?'Semanal':'Diário'}<br>Gerado em ${gerado}</div>
+    </div>
+    <h1>Relatório de Custos</h1>
+    <div class="period">${periodo}</div>
+    <div class="kpis">
+      <div class="kpi"><div class="l">Obras com lançamento</div><div class="v">${groups.length}</div></div>
+      <div class="kpi"><div class="l">Lançamentos</div><div class="v">${count}</div></div>
+      ${admin?`<div class="kpi tot"><div class="l">Total no período</div><div class="v">${fmtBRL2(total)}</div></div>`:''}
+    </div>
+    ${porDia}
+    <h2>Lançamentos por obra</h2>
+    ${obrasHTML}
+    ${admin&&groups.length?`<div class="grand"><div>Total geral do período <b>${fmtBRL2(total)}</b></div></div>`:''}
+    <div class="foot"><span>DaVincit Pro — Vincit</span><span>${periodo}</span></div>
+  </body></html>`;
+
+  const w=window.open('','_blank');
+  if(!w){ toast('Permita pop-ups para gerar o PDF','err'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+  w.onload=()=>{ setTimeout(()=>{try{w.focus();w.print();}catch(_){}}, 350); };
+  toast('Relatório gerado','ok');
+}
 function renderDash(){
   const hoje=new Date().toISOString().slice(0,10);
   const isWeek=dashMode==='semana';
@@ -1007,6 +1091,10 @@ function renderDash(){
             <button class="btn-icon" title="${isWeek?'Próxima semana':'Próximo dia'}" onclick="shiftDash(1)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button>
             ${isCurrent?'':`<button class="btn btn-ghost btn-sm" style="width:auto" onclick="setDashToday()">${isWeek?'Semana atual':'Hoje'}</button>`}
           </div>
+          <button class="btn btn-primary btn-sm" style="width:auto;padding:8px 14px;display:flex;gap:6px;align-items:center" onclick="dashExportPDF()" title="Exportar relatório em PDF">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
+            PDF
+          </button>
         </div>
       </div>
     </div>
