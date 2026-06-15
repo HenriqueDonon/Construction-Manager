@@ -179,6 +179,10 @@ body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 
 /* ---------- KPI ---------- */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(218px,1fr));gap:16px;margin-bottom:26px}
+.seg{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px}
+.seg-btn{border:none;background:transparent;color:var(--muted);font-weight:700;font-size:13px;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:inherit;transition:.15s}
+.seg-btn:hover{color:var(--text)}
+.seg-btn.seg-on{background:var(--accent);color:#1A1206}
 .kpi{background:linear-gradient(165deg,color-mix(in srgb,var(--surface) 94%,#fff 6%),var(--surface));
   border:1px solid var(--border);border-radius:var(--rad);padding:19px 21px;position:relative;overflow:hidden;
   transition:transform .2s cubic-bezier(.2,.8,.2,1),border-color .2s,box-shadow .2s}
@@ -947,42 +951,72 @@ function closeModal(){ overlay.classList.remove('open'); modalHost.innerHTML='';
 
 /* ---- DASHBOARD: diário de lançamentos por data ---- */
 let dashDate=new Date().toISOString().slice(0,10);
-function shiftDash(days){const d=new Date(dashDate+'T00:00');d.setDate(d.getDate()+days);dashDate=d.toISOString().slice(0,10);renderDash();}
+let dashMode='dia'; // 'dia' | 'semana'
+function setDashMode(m){dashMode=m;renderDash();}
+function shiftDash(dir){const step=dashMode==='semana'?7:1;const d=new Date(dashDate+'T00:00');d.setDate(d.getDate()+dir*step);dashDate=d.toISOString().slice(0,10);renderDash();}
 function setDashToday(){dashDate=new Date().toISOString().slice(0,10);renderDash();}
 function onDashDate(v){if(v){dashDate=v;renderDash();}}
+function weekRange(dateStr){const d=new Date(dateStr+'T00:00');const dow=(d.getDay()+6)%7;const mon=new Date(d);mon.setDate(d.getDate()-dow);const sun=new Date(mon);sun.setDate(mon.getDate()+6);const iso=x=>x.toISOString().slice(0,10);return{start:iso(mon),end:iso(sun),mon};}
 function renderDash(){
   const hoje=new Date().toISOString().slice(0,10);
-  const isToday=dashDate===hoje;
-  const dataLabel=isToday?'Hoje':new Date(dashDate+'T00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
-  // agrupa lançamentos da data selecionada por obra
-  const groups=[]; let dayTotal=0, dayCount=0;
+  const isWeek=dashMode==='semana';
+  const wk=weekRange(dashDate);
+  const inRange=l=> isWeek ? (l.data>=wk.start && l.data<=wk.end) : (l.data===dashDate);
+  const isCurrent = isWeek ? (hoje>=wk.start && hoje<=wk.end) : (dashDate===hoje);
+  const dataLabel = isWeek
+    ? `Semana de ${dateBR(wk.start)} a ${dateBR(wk.end)}`
+    : (dashDate===hoje ? 'Hoje' : new Date(dashDate+'T00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}));
+  // agrupa lançamentos do período por obra
+  const groups=[]; let total=0, count=0;
   state.obras.forEach(o=>{
-    const ls=(o.lancamentos||[]).filter(l=>l.data===dashDate);
+    const ls=(o.lancamentos||[]).filter(inRange);
     if(ls.length){const sub=ls.reduce((s,l)=>s+(+l.valorRealizado||+l.valorPrevisto||0),0);
-      groups.push({o,ls,sub}); dayTotal+=sub; dayCount+=ls.length;}
+      groups.push({o,ls,sub}); total+=sub; count+=ls.length;}
   });
   const ativas=state.obras.filter(o=>o.status!=='Concluída').length;
+  // mini-gráfico por dia (apenas no modo semana)
+  let weekChart='';
+  if(isWeek){
+    const days=[]; for(let i=0;i<7;i++){const d=new Date(wk.mon);d.setDate(wk.mon.getDate()+i);days.push(d.toISOString().slice(0,10));}
+    const totByDay=days.map(ds=>{let t=0;state.obras.forEach(o=>(o.lancamentos||[]).forEach(l=>{if(l.data===ds)t+=(+l.valorRealizado||+l.valorPrevisto||0);}));return t;});
+    const cntByDay=days.map(ds=>{let c=0;state.obras.forEach(o=>(o.lancamentos||[]).forEach(l=>{if(l.data===ds)c++;}));return c;});
+    const max=Math.max(...totByDay,1); const names=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+    weekChart=`<div class="card" style="margin-bottom:22px"><div class="card-head"><h3>Custos por dia da semana</h3></div>
+      <div class="bar-chart" style="height:160px">${totByDay.map((t,i)=>`<div class="bar" title="${names[i]} ${dateBR(days[i])}: ${fmtBRL(t)} · ${cntByDay[i]} lanç." onclick="onDashDate('${days[i]}');setDashMode('dia')" style="cursor:pointer">
+        <div class="fill" style="height:${Math.max(t/max*100,t>0?6:0)}%;${days[i]===hoje?'background:var(--accent)':''}"></div>
+        ${isAdmin()?`<b class="mono" style="font-size:10.5px">${t?fmtBRL(t):''}</b>`:`<b class="mono" style="font-size:10.5px">${cntByDay[i]||''}</b>`}
+        <small${days[i]===hoje?' style="color:var(--accent);font-weight:800"':''}>${names[i]}</small></div>`).join('')}</div>
+      <p class="hint">Toque numa barra para abrir os lançamentos daquele dia.</p></div>`;
+  }
 
   document.getElementById('page-dash').innerHTML=`
     <div class="card" style="padding:16px 20px;margin-bottom:22px">
       <div class="flex between wrap" style="gap:14px">
         <div>
-          <div style="font-family:var(--display);font-weight:800;font-size:20px;text-transform:capitalize">${dataLabel}</div>
-          <div class="muted" style="font-size:13px;margin-top:2px">Lançamentos de custo registrados nesta data</div>
+          <div style="font-family:var(--display);font-weight:800;font-size:20px;text-transform:${isWeek?'none':'capitalize'}">${dataLabel}${isWeek&&isCurrent?' <span class="badge ok" style="vertical-align:middle">atual</span>':''}</div>
+          <div class="muted" style="font-size:13px;margin-top:2px">Custos lançados ${isWeek?'nesta semana':'nesta data'}</div>
         </div>
-        <div class="flex" style="gap:8px">
-          <button class="btn-icon" title="Dia anterior" onclick="shiftDash(-1)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button>
-          <input class="input" type="date" value="${dashDate}" onchange="onDashDate(this.value)" style="width:auto">
-          <button class="btn-icon" title="Próximo dia" onclick="shiftDash(1)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button>
-          ${isToday?'':`<button class="btn btn-ghost btn-sm" style="width:auto" onclick="setDashToday()">Hoje</button>`}
+        <div class="flex" style="gap:10px;flex-wrap:wrap;align-items:center">
+          <div class="seg">
+            <button class="seg-btn ${!isWeek?'seg-on':''}" onclick="setDashMode('dia')">Dia</button>
+            <button class="seg-btn ${isWeek?'seg-on':''}" onclick="setDashMode('semana')">Semana</button>
+          </div>
+          <div class="flex" style="gap:8px">
+            <button class="btn-icon" title="${isWeek?'Semana anterior':'Dia anterior'}" onclick="shiftDash(-1)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button>
+            <input class="input" type="date" value="${dashDate}" onchange="onDashDate(this.value)" style="width:auto">
+            <button class="btn-icon" title="${isWeek?'Próxima semana':'Próximo dia'}" onclick="shiftDash(1)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button>
+            ${isCurrent?'':`<button class="btn btn-ghost btn-sm" style="width:auto" onclick="setDashToday()">${isWeek?'Semana atual':'Hoje'}</button>`}
+          </div>
         </div>
       </div>
     </div>
 
+    ${weekChart}
+
     <div class="kpi-grid">
       <div class="kpi blue"><div class="klabel">Obras com lançamento</div><div class="kval mono">${groups.length}</div><div class="ksub">${ativas} obra(s) em andamento</div></div>
-      <div class="kpi"><div class="klabel">Lançamentos na data</div><div class="kval mono">${dayCount}</div></div>
-      ${isAdmin()?`<div class="kpi accent"><div class="klabel">Total lançado na data</div><div class="kval mono">${fmtBRL(dayTotal)}</div></div>`:''}
+      <div class="kpi"><div class="klabel">Lançamentos ${isWeek?'na semana':'na data'}</div><div class="kval mono">${count}</div></div>
+      ${isAdmin()?`<div class="kpi accent"><div class="klabel">Total lançado ${isWeek?'na semana':'na data'}</div><div class="kval mono">${fmtBRL(total)}</div></div>`:''}
     </div>
 
     ${groups.length? groups.map(({o,ls,sub})=>{
@@ -994,13 +1028,13 @@ function renderDash(){
             <span class="badge ${st[1]}">${st[0]}</span>
             <span class="muted mono" style="font-size:12px">${esc(o.codigo||'')}</span>
           </div>
-          ${isAdmin()?`<div class="flex" style="gap:6px"><span class="muted" style="font-size:12px">Subtotal do dia</span><b class="mono" style="font-size:15px;color:var(--accent)">${fmtBRL(sub)}</b></div>`:''}
+          ${isAdmin()?`<div class="flex" style="gap:6px"><span class="muted" style="font-size:12px">Subtotal ${isWeek?'da semana':'do dia'}</span><b class="mono" style="font-size:15px;color:var(--accent)">${fmtBRL(sub)}</b></div>`:''}
         </div>
         <div style="overflow-x:auto"><table><thead><tr>
-          <th>Descrição</th><th>Categoria</th><th>Fornecedor</th>${isAdmin()?'<th class="td-r">Valor</th>':''}<th>Status</th>${isAdmin()?'<th></th>':''}
+          <th>Descrição</th><th>Categoria</th>${isWeek?'<th>Data</th>':''}<th>Fornecedor</th>${isAdmin()?'<th class="td-r">Valor</th>':''}<th>Status</th>${isAdmin()?'<th></th>':''}
         </tr></thead><tbody>
-          ${ls.map(l=>{const ps=PAGSTATUS.find(p=>p[0]===effStatus(l))||PAGSTATUS[0];const v=+l.valorRealizado||+l.valorPrevisto||0;
-            return `<tr><td><b>${esc(l.descricao)}</b>${funcTag(l)}</td><td>${esc(l.categoria)}</td><td class="muted">${esc(l.fornecedor||'—')}</td>
+          ${ls.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map(l=>{const ps=PAGSTATUS.find(p=>p[0]===effStatus(l))||PAGSTATUS[0];const v=+l.valorRealizado||+l.valorPrevisto||0;
+            return `<tr><td><b>${esc(l.descricao)}</b>${funcTag(l)}</td><td>${esc(l.categoria)}</td>${isWeek?`<td class="muted">${dateBR(l.data)}</td>`:''}<td class="muted">${esc(l.fornecedor||'—')}</td>
             ${isAdmin()?`<td class="td-r">${fmtBRL2(v)}</td>`:''}
             <td>${pagoCheck(o.id,l)} <span class="badge ${ps[1]}">${ps[0]}</span></td>
             ${isAdmin()?`<td><div class="row-actions">
@@ -1011,7 +1045,7 @@ function renderDash(){
       </div>`;}).join('')
     : `<div class="empty">
         <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01"/></svg>
-        <p>Nenhum lançamento registrado em ${isToday?'hoje':'<b>'+dateBR(dashDate)+'</b>'}.</p>
+        <p>Nenhum lançamento registrado ${isWeek?'nesta semana':(isCurrent?'hoje':'em <b>'+dateBR(dashDate)+'</b>')}.</p>
         ${isAdmin()?`<button class="btn btn-primary" style="width:auto;padding:11px 22px" onclick="go('obras')">Ir para obras</button>`:''}
       </div>`}
   `;
