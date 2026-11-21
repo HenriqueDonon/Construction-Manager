@@ -237,6 +237,16 @@ body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .obra-card .metrics{display:grid;grid-template-columns:1fr 1fr;gap:13px}
 .obra-card .metric small{font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:2px}
 .obra-card .metric b{font-family:var(--mono);font-size:15px;font-weight:700}
+.obra-card .cost-now{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:13px 15px;margin:0 0 16px;border-radius:12px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 13%,var(--surface2)),var(--surface2));border:1px solid color-mix(in srgb,var(--accent) 38%,var(--border))}
+.obra-card .cost-now small{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;display:block;margin-bottom:5px}
+.obra-card .cost-now b{font-family:var(--mono);font-size:25px;font-weight:700;letter-spacing:-.03em;color:var(--text);line-height:1;white-space:nowrap}
+.obra-card .cost-now .meta{font-size:11.5px;color:var(--muted);text-align:right;line-height:1.5;white-space:nowrap}
+.lanc-more{display:flex;flex-direction:column;align-items:center;gap:9px;margin:4px 0 8px;padding-top:14px;border-top:1px dashed var(--border2)}
+.lanc-more .hint{font-size:12.5px;color:var(--muted)}
+.btn-expand{width:100%;max-width:520px;display:flex;align-items:center;justify-content:center;gap:9px;padding:12px 18px;border-radius:12px;cursor:pointer;
+  font:700 14px var(--body);color:var(--accent);background:var(--accent-soft);border:1.5px solid color-mix(in srgb,var(--accent) 60%,transparent);transition:background .2s}
+.btn-expand:hover{background:color-mix(in srgb,var(--accent) 22%,transparent)}
 .alert-dot{position:absolute;top:11px;left:13px;z-index:2;width:23px;height:23px;border-radius:50%;background:var(--danger);
   color:#fff;display:grid;place-items:center;font-weight:900;font-size:14px;box-shadow:0 0 0 4px var(--dangerbg);animation:pulse 1.9s infinite}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,93,98,.55)}50%{box-shadow:0 0 0 8px rgba(255,93,98,0)}}
@@ -1169,6 +1179,7 @@ function obraCardHTML(o){
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         ${esc(o.cidade||'Sem local')} · ${esc(o.tipo)}
       </div>
+      ${isAdmin()?costNowHTML(o,c):''}
       <div class="metrics">
         ${isAdmin()?`<div class="metric"><small>VGV</small><b class="mono">${fmtBRL(c.vgv)}</b></div>
         <div class="metric"><small>Lucro previsto</small><b class="mono ${c.lucro>=0?'pos':'neg'}">${fmtBRL(c.lucro)}</b></div>
@@ -1180,8 +1191,15 @@ function obraCardHTML(o){
     </div></div>`;
 }
 
+// faixa de custo atual (pago) no card da obra
+function costNowHTML(o,c){
+  const ls=o.lancamentos||[]; const ult=ls.reduce((m,l)=>(l.data||'')>m?l.data:m,'');
+  return `<div class="cost-now"><div><small>Custo atual (pago)</small><b>${fmtBRL(c.realizado)}</b></div>
+    <div class="meta">${ls.length} lançamento${ls.length===1?'':'s'}${ult?`<br>último ${ult.slice(8,10)}/${ult.slice(5,7)}`:''}</div></div>`;
+}
 /* ---- OBRA DETAIL ---- */
-function openObra(id){ currentObra=state.obras.find(o=>o.id===id); currentTab='visao'; go('obra'); }
+let lancShowAll=false, LANC_MIN=10;
+function openObra(id){ currentObra=state.obras.find(o=>o.id===id); currentTab='visao'; lancShowAll=false; go('obra'); }
 function renderObra(){
   const o=currentObra; if(!o){go('obras');return;}
   const c=calc(o); const st=STATUS.find(s=>s[0]===o.status)||STATUS[0];
@@ -1280,8 +1298,8 @@ function obraCustos(o,c){
       <div style="overflow-x:auto"><table><thead><tr>
         <th>Descrição</th><th>Categoria</th><th>Subcategoria</th><th>Fornecedor</th><th>Data</th>
         <th class="td-r">Previsto</th><th class="td-r">Realizado</th><th>Status</th>${isAdmin()?'<th></th>':''}</tr></thead><tbody id="lancTbody">
-        ${ls.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map(l=>{const ps=PAGSTATUS.find(p=>p[0]===effStatus(l))||PAGSTATUS[0];
-          return `<tr data-desc="${esc((l.descricao||'').toLowerCase())}" data-cat="${esc((l.categoria||'').toLowerCase())}" data-sub="${esc((l.subcategoria||'').toLowerCase())}" data-forn="${esc(((l.fornecedor||l.funcionarioNome)||'').toLowerCase())}" data-forma="${esc((l.forma||'').toLowerCase())}" data-obs="${esc((l.obs||'').toLowerCase())}">
+        ${ls.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map((l,i)=>{const ps=PAGSTATUS.find(p=>p[0]===effStatus(l))||PAGSTATUS[0];
+          return `<tr data-i="${i}" ${(!lancShowAll&&i>=LANC_MIN)?'style="display:none"':''} data-desc="${esc((l.descricao||'').toLowerCase())}" data-cat="${esc((l.categoria||'').toLowerCase())}" data-sub="${esc((l.subcategoria||'').toLowerCase())}" data-forn="${esc(((l.fornecedor||l.funcionarioNome)||'').toLowerCase())}" data-forma="${esc((l.forma||'').toLowerCase())}" data-obs="${esc((l.obs||'').toLowerCase())}">
           <td><b>${esc(l.descricao)}</b>${funcTag(l)}${l.obs?`<div class="hint" style="margin-top:2px">${esc(l.obs)}</div>`:''}</td><td>${esc(l.categoria)}</td>
           <td class="muted">${esc(l.subcategoria||'—')}</td><td class="muted">${esc(l.fornecedor||'—')}</td>
           <td class="muted">${dateBR(l.data)}</td><td class="td-r">${fmtBRL2(+l.valorPrevisto||0)}</td>
@@ -1292,6 +1310,8 @@ function obraCustos(o,c){
             <button class="icon-btn del" onclick="event.stopPropagation();delLanc('${o.id}','${l.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
           </div></td>`:''}</tr>`;}).join('')}
         </tbody></table></div>
+        ${ls.length>LANC_MIN?`<div class="lanc-more" id="lancMore"><span class="hint" id="lancMoreInfo"></span>
+          <button class="btn-expand" id="lancMoreBtn" onclick="toggleLancAll()"></button></div>`:''}
         ${isAdmin()?`<div class="section-title">Por categoria</div>
         <div class="bar-chart">${Object.entries(porCat).filter(([k,v])=>v>0).map(([k,v])=>{const max=Math.max(...Object.values(porCat),1);
           return `<div class="bar" title="${fmtBRL(v)}"><div class="fill" style="height:${v/max*100}%"></div><b class="mono" style="font-size:11px">${fmtBRL(v)}</b><small>${k.split(' ')[0]}</small></div>`;}).join('')}</div>`:''}
@@ -1299,6 +1319,7 @@ function obraCustos(o,c){
         :emptyHTML('Nenhum lançamento ainda',null,`openLancModal('${o.id}')`,'+ Adicionar lançamento')}
     </div>
     ${empreitaObraHTML(o)}`;
+  updateLancMore();
 }
 // controle de empreita por funcionário desta obra (saldo contratado, retirado, restante)
 function empreitaObraHTML(o){
@@ -2311,10 +2332,27 @@ function refreshAfterLanc(){ refreshActive(); }
 function filterLancTable(){
   const f=document.getElementById('lancFiltCampo'), q=document.getElementById('lancFiltQ');
   if(!f||!q)return; const field=f.value, term=q.value.trim().toLowerCase();
+  let hits=0;
   document.querySelectorAll('#lancTbody tr').forEach(tr=>{
-    const v=(tr.getAttribute('data-'+field)||'');
-    tr.style.display=(!term||v.indexOf(term)>=0)?'':'none';
+    const v=(tr.getAttribute('data-'+field)||''); const i=+tr.getAttribute('data-i');
+    const show = term ? v.indexOf(term)>=0 : (lancShowAll||i<LANC_MIN);
+    if(term&&show)hits++; tr.style.display=show?'':'none';
   });
+  updateLancMore(term,hits);
+}
+// botão de expandir/recolher a lista de lançamentos (mostra só os 10 mais recentes por padrão)
+function updateLancMore(term,hits){
+  const box=document.getElementById('lancMore'); if(!box)return;
+  const total=document.querySelectorAll('#lancTbody tr').length;
+  const info=document.getElementById('lancMoreInfo'), btn=document.getElementById('lancMoreBtn');
+  if(term){ info.innerHTML=`<b>${hits}</b> resultado${hits===1?'':'s'} da busca em ${total} lançamentos`; btn.style.display='none'; return; }
+  btn.style.display='';
+  if(lancShowAll){ info.innerHTML=`Mostrando todos os <b>${total}</b> lançamentos`; btn.innerHTML='Mostrar menos <span style="font-size:16px">▴</span>'; }
+  else{ info.innerHTML=`Mostrando os <b>${LANC_MIN} mais recentes</b> de ${total} lançamentos`; btn.innerHTML=`Ver todos os ${total} lançamentos <span style="font-size:16px">▾</span>`; }
+}
+function toggleLancAll(){
+  lancShowAll=!lancShowAll; filterLancTable();
+  if(!lancShowAll){ const t=document.getElementById('lancTbody'); if(t)t.closest('.card').scrollIntoView({behavior:'smooth',block:'start'}); }
 }
 // limpar / remover opções das caixas de seleção (admin)
 function clearList(field,lbl){
