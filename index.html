@@ -790,12 +790,18 @@ function calc(o){
   const margem = vgv>0 ? lucro/vgv*100 : 0;
   const roi = custoTotal>0 ? lucro/custoTotal*100 : 0;
   const lucroM2 = areaConstr>0 ? lucro/areaConstr : 0;
-  return {simple,precoM2,vgv,custoConstr,custoTerreno,custoIndireto,custoTaxas,comissao,impostoFO,impEst,impostoPctObra,custoTotal,custoTotalM2,realizado,compromissado,lucro,margem,roi,lucroM2,areaVend,areaConstr};
+  // tempo real: o custo pago é abatido do VGV conforme os lançamentos entram
+  const areaRef = areaConstr>0 ? areaConstr : areaVend, areaRefNome = areaConstr>0 ? 'construída' : 'vendável';
+  const custoAtual = realizado;
+  const lucroAtual = vgv - custoAtual;
+  const margemAtual = vgv>0 ? lucroAtual/vgv*100 : 0;
+  const custoM2Atual = areaRef>0 ? custoAtual/areaRef : 0;
+  return {areaRef,areaRefNome,custoAtual,lucroAtual,margemAtual,custoM2Atual,simple,precoM2,vgv,custoConstr,custoTerreno,custoIndireto,custoTaxas,comissao,impostoFO,impEst,impostoPctObra,custoTotal,custoTotalM2,realizado,compromissado,lucro,margem,roi,lucroM2,areaVend,areaConstr};
 }
 function obraAlert(o){ // estouro de orçamento (compromissado > custo total estimado) ou margem negativa
   const c=calc(o);
   if(c.custoTotal>0 && c.compromissado>c.custoTotal) return 'over';
-  if(c.vgv>0 && c.lucro<0) return 'neg';
+  if(c.vgv>0 && (c.lucro<0 || c.lucroAtual<0)) return 'neg';
   return null;
 }
 const alertCount=()=>state.obras.filter(o=>o.status!=='Concluída'&&obraAlert(o)).length;
@@ -1181,11 +1187,12 @@ function obraCardHTML(o){
       </div>
       ${isAdmin()?costNowHTML(o,c):''}
       <div class="metrics">
-        ${isAdmin()?`<div class="metric"><small>VGV</small><b class="mono">${fmtBRL(c.vgv)}</b></div>
-        <div class="metric"><small>Lucro previsto</small><b class="mono ${c.lucro>=0?'pos':'neg'}">${fmtBRL(c.lucro)}</b></div>
-        <div class="metric"><small>Margem</small><b class="mono ${c.margem>=0?'pos':'neg'}">${fmtPct(c.margem)}</b></div>`
-        :`<div class="metric"><small>Unidades</small><b class="mono">${totalUnidades(o)||'—'}</b></div>`}
-        <div class="metric"><small>Área construída</small><b class="mono">${fmtArea(c.areaConstr)}</b></div>
+        ${isAdmin()?`<div class="metric"><small>VGV</small><b class="mono">${c.vgv>0?fmtBRL(c.vgv):'Defina o VGV'}</b></div>
+        <div class="metric"><small>Lucro atual</small><b class="mono ${c.lucroAtual>=0?'pos':'neg'}">${c.vgv>0?fmtBRL(c.lucroAtual):'—'}</b></div>
+        <div class="metric"><small>Margem atual</small><b class="mono ${c.margemAtual>=0?'pos':'neg'}">${c.vgv>0?fmtPct(c.margemAtual):'—'}</b></div>
+        <div class="metric" title="Custo pago ÷ área ${c.areaRefNome}"><small>Custo / m²</small><b class="mono">${c.areaRef>0?fmtBRL(c.custoM2Atual):'Defina a área'}</b></div>`
+        :`<div class="metric"><small>Unidades</small><b class="mono">${totalUnidades(o)||'—'}</b></div>
+        <div class="metric"><small>Área construída</small><b class="mono">${fmtArea(c.areaConstr)}</b></div>`}
       </div>
       <button class="btn btn-primary btn-sm" style="width:auto;padding:7px 13px;margin-top:12px" onclick="event.stopPropagation();openLancModal('${o.id}')">+ Lançamento</button>
     </div></div>`;
@@ -1226,9 +1233,9 @@ function obraVisao(o,c){
   document.getElementById('obraTabBody').innerHTML=`
     ${isAdmin()?`<div class="kpi-grid">
       <div class="kpi accent"><div class="klabel">VGV</div><div class="kval mono">${fmtBRL(c.vgv)}</div></div>
-      <div class="kpi"><div class="klabel">Custo total</div><div class="kval mono">${fmtBRL(c.custoTotal)}</div></div>
-      <div class="kpi ${c.lucro>=0?'ok':'danger'}"><div class="klabel">Lucro previsto</div><div class="kval mono">${fmtBRL(c.lucro)}</div><div class="ksub">Margem ${fmtPct(c.margem)} · ROI ${fmtPct(c.roi)}</div></div>
-      <div class="kpi blue"><div class="klabel">Lucro / m²</div><div class="kval mono">${fmtBRL(c.lucroM2)}</div></div>
+      <div class="kpi"><div class="klabel">Custo atual (pago)</div><div class="kval mono">${fmtBRL(c.custoAtual)}</div>${c.custoTotal>c.impostoFO?`<div class="ksub">Orçado ${fmtBRL(c.custoTotal)} · ${fmtPct(c.custoAtual/c.custoTotal*100)} gasto</div>`:''}</div>
+      <div class="kpi ${c.lucroAtual>=0?'ok':'danger'}"><div class="klabel">Lucro atual</div><div class="kval mono">${c.vgv>0?fmtBRL(c.lucroAtual):'—'}</div><div class="ksub">${c.vgv>0?`Margem ${fmtPct(c.margemAtual)} · VGV − custo pago`:'Defina o VGV na viabilidade'}</div></div>
+      <div class="kpi blue"><div class="klabel">Custo / m²</div><div class="kval mono">${c.areaRef>0?fmtBRL(c.custoM2Atual):'—'}</div><div class="ksub">${c.areaRef>0?`Custo pago ÷ ${fmtArea(c.areaRef)} (área ${c.areaRefNome})`:'Defina a área da obra'}</div></div>
     </div>`:''}
     <div class="fgrid-2" style="align-items:start">
       <div class="card">
